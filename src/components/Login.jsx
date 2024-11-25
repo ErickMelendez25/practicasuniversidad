@@ -1,30 +1,28 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import '../styles/Login.css';
 
 const Login = () => {
-  const [username, setUsername] = useState(''); // Para el correo
-  const [password, setPassword] = useState(''); // Para la contraseña
-  const [errorMessage, setErrorMessage] = useState(''); // Para mostrar el error
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
 
     try {
-      // Realizar la solicitud de login al backend
       const response = await axios.post('http://localhost:5000/login', {
-        correo: username,    // Enviar 'username' como 'correo' en la solicitud
-        password: password,  // Enviar 'password' tal como está
+        correo: username,
+        password: password,
       });
 
-      // Si la autenticación es exitosa, almacenamos el token en localStorage
       localStorage.setItem('authToken', response.data.token);
+      localStorage.setItem('usuario', JSON.stringify(response.data.usuario));  // Aquí guardamos "usuario"
 
-      // Redirigir a la página del Dashboard (usando React Router, por ejemplo)
-      window.location.href = '/dashboard'; // Esto redirige a /dashboard
-
+      navigate('/dashboard');
     } catch (error) {
-      // Si ocurre un error, mostrar el mensaje correspondiente
       setErrorMessage(error.response?.data?.message || 'Hubo un error en el login');
     }
   };
@@ -56,7 +54,6 @@ const Login = () => {
           />
         </div>
 
-        {/* Mostrar mensaje de error si existe */}
         {errorMessage && <p className="error-message">{errorMessage}</p>}
 
         <button type="submit">Iniciar sesión</button>

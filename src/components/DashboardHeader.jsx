@@ -3,8 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 import '../styles/DashboardHeader.css';
 
 const handleLogout = () => {
-  // Eliminar el token del localStorage
+  // Eliminar el token y el rol del localStorage
   localStorage.removeItem('authToken');
+  localStorage.removeItem('userRole');
   // Redirigir al login
   window.location.href = '/';
 };
@@ -54,6 +55,9 @@ function DashboardHeader() {
     return () => clearTimeout(timer);
   }, [location.pathname]);
 
+  // Obtener el rol del usuario desde el localStorage
+  const userRole = localStorage.getItem('userRole');
+
   return (
     <header className="dashboard-header">
       <div className="logo-container">
@@ -89,7 +93,6 @@ function DashboardHeader() {
 
       {/* Ícono de usuario */}
       <div className="user-icon-container">
-        {/* Reemplaza el icono con la imagen sist.jpg */}
         <img 
           src="/images/inge.jpg" 
           alt="Icono de usuario" 
@@ -104,6 +107,11 @@ function DashboardHeader() {
             </ul>
           </div>
         )}
+      </div>
+
+      {/* Mostrar el rol del usuario al costado del menú de opciones */}
+      <div className="user-role">
+        <label>{userRole ? `Rol: ${userRole}` : 'Cargando rol...'}</label>
       </div>
 
       {/* Modal de confirmación de cierre de sesión */}

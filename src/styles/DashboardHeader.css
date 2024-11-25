@@ -3,29 +3,36 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
+    padding: 15px; /* Reducción de padding para ajustarse mejor */
     background-color: #6d7680; /* Fondo oscuro y elegante */
     color: white;
-    position: relative;
+    position: fixed; /* Se mantiene fijo en la parte superior */
+    top: 0;
+    left: 0;
+    right: 0;
     width: 100%; /* Asegura que el header ocupe todo el ancho de la pantalla */
     box-sizing: border-box; /* Evita que el padding cause desbordamientos */
+    z-index: 9999; /* Asegura que el header se mantenga encima de otros elementos */
+    display: flex;
+    justify-content: space-between; /* Espacia los elementos */
+    align-items: center;
 }
 
 /* Estilo para los logos */
 .logo-container {
     display: flex;
     align-items: center;
-    margin-right: 15px; /* Ajuste de separación entre el logo y el icono de usuario */
+    margin-right: 10px; /* Ajuste de separación entre el logo y el icono de usuario */
 }
 
 .logo-container img {
-    height: 50px; /* Ajusta el tamaño del logo */
+    height: 48px; /* Ajusta el tamaño del logo */
     transition: transform 0.3s ease-in-out, opacity 0.5s ease-in-out;
 }
 
 /* Agregar un margen al logo "sist.png" para separarlo del primer logo */
 .logo-container img:nth-child(2) {
-    margin-left: 15px; /* Ajusta la separación entre los logos */
+    margin-left: 25px; /* Ajusta la separación entre los logos */
 }
 
 .logo-animate {
@@ -38,6 +45,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    width: 100%; /* Asegura que el menú ocupe todo el espacio disponible */
 }
 
 /* Estilos de las opciones del menú */
@@ -45,7 +53,7 @@
     list-style: none;
     display: flex;
     justify-content: center;
-    gap: 30px; /* Espacio entre opciones */
+    gap: 15px; /* Ajuste en el espacio entre las opciones */
     margin: 0;
     padding: 0;
 }
@@ -53,9 +61,9 @@
 .nav-item {
     text-decoration: none;
     color: white;
-    font-size: 1.1rem; /* Tamaño de letra ajustado */
+    font-size: 0.9rem; /* Ajuste en el tamaño de letra */
     font-weight: 500; /* Un peso de fuente equilibrado */
-    padding: 10px 20px; /* Espaciado para las opciones */
+    padding: 8px 15px; /* Ajuste de padding */
     border-radius: 30px; /* Bordes redondeados */
     background-color: rgba(255, 255, 255, 0.1); /* Fondo semi-transparente */
     transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease, padding 0.3s ease;
@@ -66,7 +74,7 @@
     background-color: #F1C40F; /* Amarillo suave en hover */
     transform: translateY(-5px); /* Efecto de elevación */
     box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2); /* Sombra prominente */
-    padding: 12px 25px; /* Aumento del padding en hover */
+    padding: 10px 20px; /* Aumento del padding en hover */
 }
 
 /* Efecto de hover con sombra más intensa */
@@ -76,16 +84,16 @@
 
 /* Estilos para el icono del usuario */
 .user-icon-container {
-    position: relative;
     display: flex;
-    flex-direction: column;  /* Apilar el ícono y el menú */
+    flex-direction: column;
     align-items: center;
     cursor: pointer;
+    position: relative; /* Para el posicionamiento del menú desplegable */
 }
 
 .user-icon {
-    width: 45px; /* Ajusta el tamaño del icono */
-    height: 45px; /* Ajusta el tamaño del icono */
+    width: 40px; /* Ajusta el tamaño del icono */
+    height: 40px; /* Ajusta el tamaño del icono */
     border-radius: 50%; /* Hace el icono circular */
     overflow: hidden;
     border: 2px solid white; /* Borde blanco alrededor del icono */
@@ -99,13 +107,14 @@
 
 .menu-options {
     position: absolute;
-    top: 55px; /* Ajuste entre el icono y el menú */
+    top: 50px; /* Ajuste entre el icono y el menú */
     background-color: #f9fafc;
     border-radius: 5px;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
     padding: 10px;
     z-index: 9999;
     transition: opacity 0.3s ease-in-out;
+    width: max-content; /* Ajusta el tamaño del menú */
 }
 
 .menu-options ul {
@@ -188,3 +197,17 @@
 .btn-confirm:hover {
     background-color: #27ae60;
 }
+
+/* Asegura que el contenido principal no quede cubierto por el header fijo */
+body {
+    margin-top: 80px; /* Ajusta el espacio para que no se solape con el header fijo */
+}
+
+.user-role {
+    margin-left: 15px;
+    font-size: 14px;
+    color: #666;
+    display: flex;
+    align-items: center;
+  }
+  

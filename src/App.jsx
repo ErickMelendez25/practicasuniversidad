@@ -41,8 +41,8 @@ function App() {
           }
         />
 
-        {/* Ruta para la vista de cada opción seleccionada dentro del Dashboard */}
-        <Route path="/dashboard/:opcion" element={
+        {/* Ruta para las opciones dentro del Dashboard */}
+        <Route path="/dashboard/:opcion/" element={
           <ProtectedRoute
             element={
               <>
@@ -53,7 +53,7 @@ function App() {
             }
           />
         }>
-          {/* Rutas para los procesos dentro de cada opción */}
+          {/* Ruta para los procesos dentro de cada opción */}
           <Route path=":proceso" element={<ProtectedRoute element={<Proceso />} />} />
         </Route>
 
