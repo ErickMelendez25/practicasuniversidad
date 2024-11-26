@@ -12,6 +12,10 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
 
+    // Agregar los console.log aquí para depurar los valores de usuario y contraseña
+    console.log("Correo:", username);  // Muestra el correo ingresado
+    console.log("Contraseña:", password);  // Muestra la contraseña ingresada
+
     try {
       const response = await axios.post('http://localhost:5000/login', {
         correo: username,

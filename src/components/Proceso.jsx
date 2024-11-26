@@ -64,6 +64,18 @@ function Proceso() {
     const formDataToSend = new FormData();
     formDataToSend.append('solicitud', formData.solicitud);
     formDataToSend.append('planPracticas', formData.planPracticas);
+    // Obtener el id_estudiante desde localStorage
+    const usuario = JSON.parse(localStorage.getItem('usuario'));  // Recuperamos el objeto del usuario que contiene el id_estudiante
+    const idEstudiante = usuario ? usuario.id_estudiante : null;
+    console.log("ID Estudiante:", idEstudiante);  // Verifica que el id_estudiante se recupera correctamente
+
+    // Verifica que el id_estudiante existe
+    if (!idEstudiante) {
+      alert('ID de estudiante no encontrado');
+      return;
+    }
+
+    formDataToSend.append('id_estudiante', idEstudiante);  // Agregar el id_estudiante al FormData
     formDataToSend.append('correo', user.correo);
     formDataToSend.append('comentarios', comentarios);
     formDataToSend.append('estado_proceso', estado);

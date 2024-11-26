@@ -52,7 +52,6 @@ const generateToken = (user) => {
   return jwt.sign(payload, 'secreta', { expiresIn: '1h' });
 };
 
-// Ruta de login
 app.post('/login', (req, res) => {
   const { correo, password } = req.body;
 
@@ -82,15 +81,30 @@ app.post('/login', (req, res) => {
         return res.status(400).json({ message: 'Contraseña incorrecta' });
       }
 
-      const token = generateToken(user);
-      res.status(200).json({
-        message: 'Login exitoso',
-        token,
-        usuario: { correo: user.correo, rol: user.rol }
+      // Obtener el id_estudiante de la tabla estudiantes usando el correo
+      db.query('SELECT id FROM estudiantes WHERE correo = ?', [user.correo], (err, studentResult) => {
+        if (err) {
+          console.error('Error al consultar el estudiante:', err);
+          return res.status(500).json({ message: 'Error en el servidor' });
+        }
+
+        const id_estudiante = studentResult.length > 0 ? studentResult[0].id : null;
+
+        const token = generateToken(user);
+        res.status(200).json({
+          message: 'Login exitoso',
+          token,
+          usuario: {
+            correo: user.correo,
+            rol: user.rol,
+            id_estudiante: id_estudiante  // Incluye id_estudiante aquí
+          }
+        });
       });
     });
   });
 });
+
 
 // Ruta para registrar un usuario (con contraseña cifrada)
 app.post('/register', (req, res) => {
@@ -124,7 +138,12 @@ app.post('/api/practicas', upload.fields([
   { name: 'solicitud', maxCount: 1 },
   { name: 'planPracticas', maxCount: 1 }
 ]), (req, res) => {
-  const { correo, comentarios, estado_proceso, } = req.body;
+  const { id_estudiante, comentarios, estado_proceso } = req.body;
+
+  // Verifica que id_estudiante no sea undefined
+  if (!id_estudiante) {
+    return res.status(400).json({ message: 'El ID del estudiante es requerido' });
+  }
 
   if (!req.files || !req.files.solicitud || !req.files.planPracticas) {
     return res.status(400).json({ message: 'Ambos archivos son necesarios' });
@@ -133,8 +152,9 @@ app.post('/api/practicas', upload.fields([
   const solicitud = req.files.solicitud[0].path;
   const planPracticas = req.files.planPracticas[0].path;
 
-  db.query('INSERT INTO practicas (correo, solicitud_inscripcion, plan_practicas, estado_proceso, comentarios) VALUES (?, ?, ?, ?, ?)', 
-    [correo, solicitud, planPracticas, estado_proceso, comentarios], 
+  // Inserta en la base de datos
+  db.query('INSERT INTO practicas (id_estudiante, solicitud_inscripcion, plan_practicas, estado_proceso, comentarios) VALUES (?, ?, ?, ?, ?)', 
+    [id_estudiante, solicitud, planPracticas, estado_proceso, comentarios], 
     (err, result) => {
       if (err) {
         console.error('Error al guardar en la base de datos:', err);
@@ -144,9 +164,11 @@ app.post('/api/practicas', upload.fields([
     });
 });
 
+
+
 // Ruta para obtener las prácticas
 app.get('/api/practicas', (req, res) => {
-  db.query('SELECT p.id, p.id_estudiante, p.solicitud_inscripcion, p.plan_practicas, p.estado_proceso, p.comentarios, e.nombres as estudiante_nombre FROM practicas p JOIN estudiantes e ON p.id_estudiante = e.id', (err, result) => {
+  db.query('SELECT p.id, p.id_estudiante, e.correo, p.solicitud_inscripcion, p.plan_practicas, p.fecha_inicio, p.fecha_fin, p.estado_proceso FROM practicas p JOIN estudiantes e ON p.id_estudiante = e.id;', (err, result) => {
     if (err) {
       console.error('Error al obtener las prácticas:', err);
       return res.status(500).json({ message: 'Error en el servidor' });
