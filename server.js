@@ -134,6 +134,7 @@ app.post('/register', (req, res) => {
 });
 
 // Ruta para registrar la práctica (subir los archivos y agregar estado)
+// Ruta para registrar la práctica (subir los archivos y agregar estado)
 app.post('/api/practicas', upload.fields([
   { name: 'solicitud', maxCount: 1 },
   { name: 'planPracticas', maxCount: 1 }
@@ -152,9 +153,13 @@ app.post('/api/practicas', upload.fields([
   const solicitud = req.files.solicitud[0].path;
   const planPracticas = req.files.planPracticas[0].path;
 
+  // Aquí, asegúrate de que el estado_proceso sea un valor simple, no un objeto JSON
+  const estado = JSON.parse(estado_proceso);  // Si envías un objeto JSON, lo parseas aquí
+  const estadoFinal = estado[Object.keys(estado)[0]] || 'Pendiente';  // Toma el primer valor del objeto o 'Pendiente' como predeterminado
+
   // Inserta en la base de datos
   db.query('INSERT INTO practicas (id_estudiante, solicitud_inscripcion, plan_practicas, estado_proceso, comentarios) VALUES (?, ?, ?, ?, ?)', 
-    [id_estudiante, solicitud, planPracticas, estado_proceso, comentarios], 
+    [id_estudiante, solicitud, planPracticas, estadoFinal, comentarios], 
     (err, result) => {
       if (err) {
         console.error('Error al guardar en la base de datos:', err);
@@ -178,27 +183,38 @@ app.get('/api/practicas', (req, res) => {
 });
 
 // Ruta para actualizar el estado de la práctica
+// Ejemplo de cómo podrías manejar la solicitud PUT en tu servidor (Node.js/Express)
+// Ruta para actualizar el estado de la práctica
 app.put('/api/actualizar-estado', (req, res) => {
-  const { correo, estado_proceso, comentarios } = req.body;
+  const { idPractica, estado, comentarios } = req.body;
 
-  if (!correo || !estado_proceso || !comentarios) {
-    return res.status(400).json({ message: 'Correo, estado y comentarios son requeridos' });
+  // Mostrar los datos recibidos para depuración
+  console.log('Datos recibidos en el servidor:', { idPractica, estado, comentarios });
+
+  // Validación de los datos recibidos
+  if (!idPractica || !estado || !comentarios) {
+    return res.status(400).json({ message: 'Faltan datos requeridos.' });
   }
 
-  db.query('UPDATE practicas SET estado_proceso = ?, comentarios = ? WHERE correo = ?', 
-    [estado_proceso, comentarios, correo], (err, result) => {
+  // Si los datos son válidos, proceder con la actualización en la base de datos
+  db.query(
+    'UPDATE practicas SET estado_proceso = ?, comentarios = ? WHERE id = ?',
+    [estado, comentarios, idPractica],
+    (err, result) => {
       if (err) {
-        console.error('Error al actualizar el estado:', err);
+        console.error('Error al actualizar el estado de la práctica:', err);
         return res.status(500).json({ message: 'Error al actualizar el estado' });
       }
 
       if (result.affectedRows === 0) {
-        return res.status(404).json({ message: 'Práctica no encontrada' });
+        return res.status(404).json({ message: 'Práctica no encontrada.' });
       }
 
-      res.status(200).json({ message: 'Estado de práctica actualizado exitosamente' });
-    });
+      res.status(200).json({ message: 'Estado actualizado correctamente.' });
+    }
+  );
 });
+
 
 // Función para cifrar todas las contraseñas de los usuarios
 const cifrarContraseñas = () => {

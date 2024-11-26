@@ -180,3 +180,47 @@ form {
     background-color: #2980b9;
   }
   
+  /* Estilo para el dropdown de Estado Proceso */
+.dropdown-toggle::after {
+  display: none; /* Elimina el ícono del dropdown */
+}
+
+.dropdown-menu {
+  min-width: 200px; /* Establece un ancho mínimo */
+}
+
+.dropdown-item {
+  font-size: 14px;
+  padding: 10px;
+}
+
+.table th,
+.table td {
+  padding: 12px;
+  text-align: center;
+}
+
+.table-striped tbody tr:nth-child(odd) {
+  background-color: #f9f9f9;
+}
+
+.btn-outline-primary {
+  color: #007bff;
+  border-color: #007bff;
+}
+
+.btn-outline-primary:hover {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-success {
+  background-color: #28a745;
+  border-color: #28a745;
+  color: white;
+}
+
+.btn-success:hover {
+  background-color: #218838;
+  border-color: #1e7e34;
+}

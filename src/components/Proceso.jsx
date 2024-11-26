@@ -4,8 +4,8 @@ import axios from 'axios';
 function Proceso() {
   const [userRole, setUserRole] = useState(null);
   const [practicas, setPracticas] = useState([]);
-  const [estado, setEstado] = useState('pendiente');
-  const [comentarios, setComentarios] = useState('');
+  const [estado, setEstado] = useState({});
+  const [comentarios, setComentarios] = useState({});
   const [formData, setFormData] = useState({
     solicitud: null,
     planPracticas: null
@@ -19,6 +19,7 @@ function Proceso() {
       setUserRole(user.rol);
     }
 
+    // Cargar las prácticas si el usuario es secretaria
     if (user && user.rol === 'secretaria') {
       axios.get('http://localhost:5000/api/practicas')
         .then((response) => {
@@ -37,12 +38,20 @@ function Proceso() {
     }
   }, [user]);
 
-  const handleEstadoChange = (e) => {
-    setEstado(e.target.value);
+  const handleEstadoChange = (id, e) => {
+    if (userRole === 'secretaria') {
+      setEstado((prevEstado) => ({
+        ...prevEstado,
+        [id]: e.target.value, // Actualiza el estado solo para la práctica específica
+      }));
+    }
   };
 
-  const handleComentariosChange = (e) => {
-    setComentarios(e.target.value);
+  const handleComentariosChange = (id, e) => {
+    setComentarios((prevComentarios) => ({
+      ...prevComentarios,
+      [id]: e.target.value, // Actualiza el comentario solo para la práctica específica
+    }));
   };
 
   const handleFileChange = (e) => {
@@ -64,21 +73,22 @@ function Proceso() {
     const formDataToSend = new FormData();
     formDataToSend.append('solicitud', formData.solicitud);
     formDataToSend.append('planPracticas', formData.planPracticas);
-    // Obtener el id_estudiante desde localStorage
-    const usuario = JSON.parse(localStorage.getItem('usuario'));  // Recuperamos el objeto del usuario que contiene el id_estudiante
+    const usuario = JSON.parse(localStorage.getItem('usuario'));
     const idEstudiante = usuario ? usuario.id_estudiante : null;
-    console.log("ID Estudiante:", idEstudiante);  // Verifica que el id_estudiante se recupera correctamente
 
-    // Verifica que el id_estudiante existe
     if (!idEstudiante) {
       alert('ID de estudiante no encontrado');
       return;
     }
 
-    formDataToSend.append('id_estudiante', idEstudiante);  // Agregar el id_estudiante al FormData
+    formDataToSend.append('id_estudiante', idEstudiante);
     formDataToSend.append('correo', user.correo);
-    formDataToSend.append('comentarios', comentarios);
-    formDataToSend.append('estado_proceso', estado);
+
+    // Enviar "Pendiente" como estado por defecto
+    formDataToSend.append('estado_proceso', JSON.stringify({ [idEstudiante]: 'Pendiente' }));
+
+    // Enviar los comentarios
+    formDataToSend.append('comentarios', JSON.stringify(comentarios));
 
     axios.post('http://localhost:5000/api/practicas', formDataToSend, {
       headers: { 'Content-Type': 'multipart/form-data' }
@@ -92,21 +102,27 @@ function Proceso() {
   };
 
   const handleUpdateState = (idPractica) => {
-    axios.put('http://localhost:5000/api/actualizar-estado', {
-      idPractica,
-      estado,
-      comentarios,
-    })
+    const estadoPractica = estado[idPractica];  // Obtener el estado para la práctica actual
+    const comentarioPractica = comentarios[idPractica];  // Obtener el comentario para la práctica actual
+
+    if (!estadoPractica || !comentarioPractica) {
+      alert('Faltan estado o comentario para esta práctica');
+      return;
+    }
+
+    // Realizar la solicitud PUT
+    axios
+      .put('http://localhost:5000/api/actualizar-estado', {
+        idPractica,
+        estado: estadoPractica,
+        comentarios: comentarioPractica
+      })
       .then((response) => {
-        alert(response.data.message);
-        setPracticas((prevPracticas) =>
-          prevPracticas.map((practica) =>
-            practica.id === idPractica ? { ...practica, estado_proceso: estado, comentarios } : practica
-          )
-        );
+        alert('Estado actualizado correctamente');
       })
       .catch((error) => {
         alert('Error al actualizar el estado');
+        console.error(error);
       });
   };
 
@@ -131,14 +147,66 @@ function Proceso() {
                 </tr>
               </thead>
               <tbody>
-                {practicas.sort((a, b) => a.id_estudiante - b.id_estudiante).map((practica) => (
+                {practicas.map((practica) => (
                   <tr key={practica.id} style={{ borderBottom: '1px solid #ddd' }}>
                     <td style={{ padding: '8px' }}>{practica.id_estudiante}</td>
                     <td style={{ padding: '8px' }}>{practica.correo}</td>
                     <td style={{ padding: '8px' }}>{practica.solicitud_inscripcion}</td>
                     <td style={{ padding: '8px' }}>{practica.plan_practicas}</td>
-                    <td style={{ padding: '8px' }}>{practica.estado_proceso}</td>
-                    <td style={{ padding: '8px' }}>{practica.comentarios}</td>
+                    <td style={{ padding: '8px' }}>
+                      <div className="dropdown">
+                        <button
+                          className="btn btn-outline-primary dropdown-toggle"
+                          type="button"
+                          id={`dropdownMenuButton${practica.id}`}
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          disabled={userRole === 'estudiante'} // Deshabilitar si es estudiante
+                        >
+                          {estado[practica.id] || 'Pendiente'}
+                        </button>
+                        <ul className="dropdown-menu" aria-labelledby={`dropdownMenuButton${practica.id}`}>
+                          <li>
+                            <button
+                              className="dropdown-item"
+                              onClick={() => handleEstadoChange(practica.id, { target: { value: 'Pendiente' } })}
+                            >
+                              Pendiente
+                            </button>
+                          </li>
+                          <li>
+                            <button
+                              className="dropdown-item"
+                              onClick={() => handleEstadoChange(practica.id, { target: { value: 'Aprobado' } })}
+                            >
+                              Aprobado
+                            </button>
+                          </li>
+                          <li>
+                            <button
+                              className="dropdown-item"
+                              onClick={() => handleEstadoChange(practica.id, { target: { value: 'Rechazado' } })}
+                            >
+                              Rechazado
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
+                    </td>
+                    <td style={{ padding: '8px' }}>
+                      <input
+                        type="text"
+                        value={comentarios[practica.id] || ''}
+                        onChange={(e) => handleComentariosChange(practica.id, e)}
+                        placeholder="Escribe un comentario"
+                        style={{
+                          padding: '8px',
+                          width: '100%',
+                          border: '1px solid #ccc',
+                          borderRadius: '4px',
+                        }}
+                      />
+                    </td>
                     <td style={{ padding: '8px' }}>
                       <button
                         onClick={() => handleUpdateState(practica.id)}
@@ -174,20 +242,6 @@ function Proceso() {
             <label>
               Plan de Prácticas:
               <input type="file" name="planPracticas" onChange={handleFileChange} required />
-            </label>
-            <br />
-            <label>
-              Estado:
-              <select value={estado} onChange={handleEstadoChange} disabled>
-                <option value="pendiente">Pendiente</option>
-                <option value="aprobado">Aprobado</option>
-                <option value="rechazado">Rechazado</option>
-              </select>
-            </label>
-            <br />
-            <label>
-              Comentarios:
-              <textarea value={comentarios} onChange={handleComentariosChange} required />
             </label>
             <br />
             <button type="submit">Enviar</button>
