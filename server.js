@@ -173,16 +173,26 @@ app.post('/api/practicas', upload.fields([
 
 
 // Ruta para obtener las prácticas
+// Ruta para obtener las prácticas
 app.get('/api/practicas', (req, res) => {
-  db.query('SELECT p.id, p.id_estudiante, e.correo, p.solicitud_inscripcion, p.plan_practicas, p.fecha_inicio, p.fecha_fin, p.estado_proceso FROM practicas p JOIN estudiantes e ON p.id_estudiante = e.id;', (err, result) => {
+  // Consulta para obtener todas las prácticas y el correo del estudiante
+  const query = `
+    SELECT p.*, e.correo
+    FROM practicas p
+    JOIN estudiantes e ON p.id_estudiante = e.id
+  `;
+  
+  db.query(query, (err, result) => {
     if (err) {
-      console.error('Error al obtener las prácticas:', err);
-      return res.status(500).json({ message: 'Error en el servidor' });
+      console.error('Error al ejecutar la consulta:', err);
+      res.status(500).send('Error al obtener los datos de las prácticas');
+      return;
     }
+
+    // Si la consulta fue exitosa, enviamos los resultados al frontend
     res.json(result);
   });
 });
-
 // Ruta para actualizar el estado de la práctica
 // Ejemplo de cómo podrías manejar la solicitud PUT en tu servidor (Node.js/Express)
 // Ruta para actualizar el estado de la práctica

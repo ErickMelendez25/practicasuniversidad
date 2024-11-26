@@ -142,6 +142,20 @@ function Proceso() {
     closeModal();
   };
 
+  // Función para obtener el color de fondo y texto del estado
+  const getEstadoStyles = (estado) => {
+    switch (estado) {
+      case 'Pendiente':
+        return { backgroundColor: '#FFA500', color: 'black' }; // Naranja
+      case 'Aprobado':
+        return { backgroundColor: '#4CAF50', color: 'white' }; // Verde
+      case 'Rechazado':
+        return { backgroundColor: '#f44336', color: 'white' }; // Rojo
+      default:
+        return { backgroundColor: '#ffffff', color: 'black' }; // Blanco por defecto
+    }
+  };
+
   return (
     <div>
       {userRole === 'secretaria' ? (
@@ -173,7 +187,14 @@ function Proceso() {
                       <select
                         value={estado[practica.id] || 'Seleccionar Estado'}
                         onChange={(e) => handleEstadoChange(practica.id, e)}
-                        style={{ padding: '4px', fontSize: '12px' }}
+                        style={{
+                          padding: '4px',
+                          fontSize: '12px',
+                          backgroundColor: getEstadoStyles(estado[practica.id]).backgroundColor, // Fondo del select
+                          color: getEstadoStyles(estado[practica.id]).color, // Color del texto
+                          borderRadius: '4px',
+                          border: '1px solid #ccc',
+                        }}
                       >
                         <option value="Seleccionar Estado" disabled>Seleccionar Estado</option>
                         <option value="Pendiente">Pendiente</option>
@@ -185,15 +206,15 @@ function Proceso() {
                       <button
                         onClick={() => openModal(practica.id)}
                         style={{
-                          padding: '8px 16px',
-                          backgroundColor: '#007BFF',
+                          backgroundColor: '#4CAF50',
                           color: 'white',
                           border: 'none',
                           cursor: 'pointer',
                           borderRadius: '4px',
+                          padding: '8px 16px',
                         }}
                       >
-                        Escribir Comentario
+                        Comentario
                       </button>
                     </td>
                     <td style={{ padding: '1px', textAlign: 'center' }}>
@@ -208,7 +229,7 @@ function Proceso() {
                           borderRadius: '4px',
                         }}
                       >
-                        Actualizar Estado
+                        Actualizar
                       </button>
                     </td>
                   </tr>
@@ -262,7 +283,7 @@ function Proceso() {
             <textarea
               value={comentarioTemp}
               onChange={(e) => setComentarioTemp(e.target.value)}
-              style={{ width: '100%', height: '100px', padding: '10px', marginBottom: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
+              style={{ width: '100%', height: '100px', padding: '2px', marginBottom: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
             />
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <button
@@ -273,7 +294,7 @@ function Proceso() {
                   padding: '8px 16px',
                   border: 'none',
                   cursor: 'pointer',
-                  borderRadius: '4px',
+                  borderRadius: '9px',
                 }}
               >
                 Listo
@@ -283,10 +304,10 @@ function Proceso() {
                 style={{
                   backgroundColor: '#f44336',
                   color: 'white',
-                  padding: '8px 16px',
+                  padding: '8px 15px',
                   border: 'none',
                   cursor: 'pointer',
-                  borderRadius: '4px',
+                  borderRadius: '9px',
                 }}
               >
                 Cerrar
