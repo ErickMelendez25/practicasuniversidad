@@ -87,6 +87,7 @@ app.post('/login', (req, res) => {
           console.error('Error al consultar el estudiante:', err);
           return res.status(500).json({ message: 'Error en el servidor' });
         }
+        
 
         const id_estudiante = studentResult.length > 0 ? studentResult[0].id : null;
 

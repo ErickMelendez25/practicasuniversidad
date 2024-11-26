@@ -1,0 +1,118 @@
+/* Estilos generales */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Contenedor de la tabla */
+  .tabla-practicas {
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: collapse;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .tabla-practicas th, .tabla-practicas td {
+    padding: 12px 15px;
+    text-align: left;
+  }
+  
+  .tabla-practicas th {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  .tabla-practicas tr:nth-child(even) {
+    background-color: #f2f2f2;
+  }
+  
+  .tabla-practicas tr:hover {
+    background-color: #ddd;
+  }
+  
+  /* Estilo para los iconos de descarga */
+  a {
+    text-decoration: none;
+    color: #007bff;
+    font-weight: bold;
+  }
+  
+  a:hover {
+    color: #0056b3;
+  }
+  
+  a .fa-download {
+    margin-right: 5px;
+  }
+  
+  /* Botones de dropdown */
+  .dropdown-menu button {
+    padding: 8px 16px;
+    background-color: #fff;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+  }
+  
+  .dropdown-menu button:hover {
+    background-color: #f8f9fa;
+  }
+  
+  /* Estilo del input para comentarios */
+  input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+  
+  input[type="text"]:focus {
+    border-color: #007bff;
+  }
+  
+  /* Botón de actualización de estado */
+  button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+  }
+  
+  button:hover {
+    background-color: #45a049;
+  }
+  
+  /* Hacer la tabla responsiva */
+  @media screen and (max-width: 768px) {
+    .tabla-practicas {
+      font-size: 14px;
+    }
+  
+    .tabla-practicas th, .tabla-practicas td {
+      padding: 8px 10px;
+    }
+  
+    .tabla-practicas td {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+    }
+  
+    .tabla-practicas td:before {
+      content: attr(data-label);
+      font-weight: bold;
+    }
+  
+    .tabla-practicas td a {
+      display: inline-block;
+      margin-bottom: 5px;
+    }
+  }
+  

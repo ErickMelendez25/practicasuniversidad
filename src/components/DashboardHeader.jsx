@@ -110,10 +110,9 @@ function DashboardHeader() {
       </div>
 
       {/* Mostrar el rol del usuario al costado del menú de opciones */}
-      <div className="user-role">
-        <label>{userRole ? `Rol: ${userRole}` : 'Cargando rol...'}</label>
+      <div className="user-role" style={{ float: 'right', marginTop: '10px', fontSize: '16px' }}>
+        <label>{userRole ? `Rol: ${userRole}` : userRole}</label>
       </div>
-
       {/* Modal de confirmación de cierre de sesión */}
       {showConfirmLogout && (
         <div className="modal-overlay">

@@ -11,6 +11,9 @@ function Proceso() {
     planPracticas: null
   });
   const [error, setError] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false); // Estado para controlar la visibilidad del modal
+  const [comentarioTemp, setComentarioTemp] = useState(""); // Estado para almacenar el comentario temporal
+  const [modalPracticaId, setModalPracticaId] = useState(null); // ID de la práctica para la que se escribe el comentario
 
   const user = JSON.parse(localStorage.getItem('usuario'));
 
@@ -19,7 +22,6 @@ function Proceso() {
       setUserRole(user.rol);
     }
 
-    // Cargar las prácticas si el usuario es secretaria
     if (user && user.rol === 'secretaria') {
       axios.get('http://localhost:5000/api/practicas')
         .then((response) => {
@@ -39,18 +41,16 @@ function Proceso() {
   }, [user]);
 
   const handleEstadoChange = (id, e) => {
-    if (userRole === 'secretaria') {
-      setEstado((prevEstado) => ({
-        ...prevEstado,
-        [id]: e.target.value, // Actualiza el estado solo para la práctica específica
-      }));
-    }
+    setEstado((prevEstado) => ({
+      ...prevEstado,
+      [id]: e.target.value, // Cambiar el estado de la práctica seleccionada
+    }));
   };
 
   const handleComentariosChange = (id, e) => {
     setComentarios((prevComentarios) => ({
       ...prevComentarios,
-      [id]: e.target.value, // Actualiza el comentario solo para la práctica específica
+      [id]: e.target.value,
     }));
   };
 
@@ -83,12 +83,8 @@ function Proceso() {
 
     formDataToSend.append('id_estudiante', idEstudiante);
     formDataToSend.append('correo', user.correo);
-
-    // Enviar "Pendiente" como estado por defecto
-    formDataToSend.append('estado_proceso', JSON.stringify({ [idEstudiante]: 'Pendiente' }));
-
-    // Enviar los comentarios
     formDataToSend.append('comentarios', JSON.stringify(comentarios));
+    formDataToSend.append('estado_proceso', JSON.stringify(estado));
 
     axios.post('http://localhost:5000/api/practicas', formDataToSend, {
       headers: { 'Content-Type': 'multipart/form-data' }
@@ -102,21 +98,19 @@ function Proceso() {
   };
 
   const handleUpdateState = (idPractica) => {
-    const estadoPractica = estado[idPractica];  // Obtener el estado para la práctica actual
-    const comentarioPractica = comentarios[idPractica];  // Obtener el comentario para la práctica actual
+    const estadoPractica = estado[idPractica];
+    const comentarioPractica = comentarios[idPractica];
 
     if (!estadoPractica || !comentarioPractica) {
       alert('Faltan estado o comentario para esta práctica');
       return;
     }
 
-    // Realizar la solicitud PUT
-    axios
-      .put('http://localhost:5000/api/actualizar-estado', {
-        idPractica,
-        estado: estadoPractica,
-        comentarios: comentarioPractica
-      })
+    axios.put('http://localhost:5000/api/actualizar-estado', {
+      idPractica,
+      estado: estadoPractica,
+      comentarios: comentarioPractica
+    })
       .then((response) => {
         alert('Estado actualizado correctamente');
       })
@@ -124,6 +118,28 @@ function Proceso() {
         alert('Error al actualizar el estado');
         console.error(error);
       });
+  };
+
+  const openModal = (idPractica) => {
+    // Cargar el comentario almacenado en el estado para esta práctica
+    setComentarioTemp(comentarios[idPractica] || ""); 
+    setModalPracticaId(idPractica); // Guardar el ID de la práctica en el que se está escribiendo el comentario
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const saveComentario = () => {
+    if (modalPracticaId !== null) {
+      // Guardar el comentario en el estado correspondiente
+      setComentarios((prevComentarios) => ({
+        ...prevComentarios,
+        [modalPracticaId]: comentarioTemp,
+      }));
+    }
+    closeModal();
   };
 
   return (
@@ -134,80 +150,53 @@ function Proceso() {
           {error ? (
             <div>Error: {error}</div>
           ) : practicas.length > 0 ? (
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px', tableLayout: 'auto' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #ccc' }}>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>ID Estudiante</th>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Correo Estudiante</th>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Solicitud Inscripción</th>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Plan de Prácticas</th>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Estado Proceso</th>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Comentarios</th>
-                  <th style={{ padding: '8px', textAlign: 'left' }}>Acciones</th>
+                  <th style={{ padding: '8px', textAlign: 'center', fontSize: '14px' }}>ID Estudiante</th>
+                  <th style={{ padding: '8px', textAlign: 'center', fontSize: '14px' }}>Correo Estudiante</th>
+                  <th style={{ padding: '8px', textAlign: 'center', fontSize: '14px' }}>Solicitud Inscripción</th>
+                  <th style={{ padding: '8px', textAlign: 'center', fontSize: '14px' }}>Plan de Prácticas</th>
+                  <th style={{ padding: '8px', textAlign: 'center', fontSize: '14px' }}>Estado Proceso</th>
+                  <th style={{ padding: '8px', textAlign: 'center', fontSize: '14px' }}>Comentarios</th>
+                  <th style={{ padding: '8px', textAlign: 'center', fontSize: '14px' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {practicas.map((practica) => (
                   <tr key={practica.id} style={{ borderBottom: '1px solid #ddd' }}>
-                    <td style={{ padding: '8px' }}>{practica.id_estudiante}</td>
-                    <td style={{ padding: '8px' }}>{practica.correo}</td>
-                    <td style={{ padding: '8px' }}>{practica.solicitud_inscripcion}</td>
-                    <td style={{ padding: '8px' }}>{practica.plan_practicas}</td>
-                    <td style={{ padding: '8px' }}>
-                      <div className="dropdown">
-                        <button
-                          className="btn btn-outline-primary dropdown-toggle"
-                          type="button"
-                          id={`dropdownMenuButton${practica.id}`}
-                          data-bs-toggle="dropdown"
-                          aria-expanded="false"
-                          disabled={userRole === 'estudiante'} // Deshabilitar si es estudiante
-                        >
-                          {estado[practica.id] || 'Pendiente'}
-                        </button>
-                        <ul className="dropdown-menu" aria-labelledby={`dropdownMenuButton${practica.id}`}>
-                          <li>
-                            <button
-                              className="dropdown-item"
-                              onClick={() => handleEstadoChange(practica.id, { target: { value: 'Pendiente' } })}
-                            >
-                              Pendiente
-                            </button>
-                          </li>
-                          <li>
-                            <button
-                              className="dropdown-item"
-                              onClick={() => handleEstadoChange(practica.id, { target: { value: 'Aprobado' } })}
-                            >
-                              Aprobado
-                            </button>
-                          </li>
-                          <li>
-                            <button
-                              className="dropdown-item"
-                              onClick={() => handleEstadoChange(practica.id, { target: { value: 'Rechazado' } })}
-                            >
-                              Rechazado
-                            </button>
-                          </li>
-                        </ul>
-                      </div>
+                    <td style={{ padding: '1px', textAlign: 'center', fontSize: '12px' }}>{practica.id_estudiante}</td>
+                    <td style={{ padding: '1px', textAlign: 'center', fontSize: '12px' }}>{practica.correo}</td>
+                    <td style={{ padding: '1px', textAlign: 'center', fontSize: '12px' }}>{practica.solicitud_inscripcion}</td>
+                    <td style={{ padding: '1px', textAlign: 'center', fontSize: '12px' }}>{practica.plan_practicas}</td>
+                    <td style={{ padding: '1px', textAlign: 'center', fontSize: '12px' }}>
+                      <select
+                        value={estado[practica.id] || 'Seleccionar Estado'}
+                        onChange={(e) => handleEstadoChange(practica.id, e)}
+                        style={{ padding: '4px', fontSize: '12px' }}
+                      >
+                        <option value="Seleccionar Estado" disabled>Seleccionar Estado</option>
+                        <option value="Pendiente">Pendiente</option>
+                        <option value="Aprobado">Aprobado</option>
+                        <option value="Rechazado">Rechazado</option>
+                      </select>
                     </td>
-                    <td style={{ padding: '8px' }}>
-                      <input
-                        type="text"
-                        value={comentarios[practica.id] || ''}
-                        onChange={(e) => handleComentariosChange(practica.id, e)}
-                        placeholder="Escribe un comentario"
+                    <td style={{ padding: '1px', textAlign: 'center' }}>
+                      <button
+                        onClick={() => openModal(practica.id)}
                         style={{
-                          padding: '8px',
-                          width: '100%',
-                          border: '1px solid #ccc',
+                          padding: '8px 16px',
+                          backgroundColor: '#007BFF',
+                          color: 'white',
+                          border: 'none',
+                          cursor: 'pointer',
                           borderRadius: '4px',
                         }}
-                      />
+                      >
+                        Escribir Comentario
+                      </button>
                     </td>
-                    <td style={{ padding: '8px' }}>
+                    <td style={{ padding: '1px', textAlign: 'center' }}>
                       <button
                         onClick={() => handleUpdateState(practica.id)}
                         style={{
@@ -246,6 +235,64 @@ function Proceso() {
             <br />
             <button type="submit">Enviar</button>
           </form>
+        </div>
+      )}
+
+      {/* Modal para escribir comentario */}
+      {isModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: '0',
+          left: '0',
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '8px',
+            width: '400px',
+            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+          }}>
+            <h4>Escribir Comentario</h4>
+            <textarea
+              value={comentarioTemp}
+              onChange={(e) => setComentarioTemp(e.target.value)}
+              style={{ width: '100%', height: '100px', padding: '10px', marginBottom: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <button
+                onClick={saveComentario}
+                style={{
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  padding: '8px 16px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  borderRadius: '4px',
+                }}
+              >
+                Listo
+              </button>
+              <button
+                onClick={closeModal}
+                style={{
+                  backgroundColor: '#f44336',
+                  color: 'white',
+                  padding: '8px 16px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  borderRadius: '4px',
+                }}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
