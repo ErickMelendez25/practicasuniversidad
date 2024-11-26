@@ -3,30 +3,36 @@ import axios from 'axios';
 
 function Proceso() {
   const [userRole, setUserRole] = useState(null);
-  const [estudiantes, setEstudiantes] = useState([]);
+  const [practicas, setPracticas] = useState([]);
   const [estado, setEstado] = useState('pendiente');
   const [comentarios, setComentarios] = useState('');
   const [formData, setFormData] = useState({
     solicitud: null,
     planPracticas: null
   });
+  const [error, setError] = useState(null);
 
-  // Obtenemos el usuario del localStorage usando la clave 'usuario'
-  const user = JSON.parse(localStorage.getItem('usuario')); // Corregido: 'usuario' en lugar de 'user'
+  const user = JSON.parse(localStorage.getItem('usuario'));
 
   useEffect(() => {
     if (user) {
-      setUserRole(user.rol); // Obtener el rol del usuario
+      setUserRole(user.rol);
     }
 
-    // Si es secretaria, obtener la lista de estudiantes
     if (user && user.rol === 'secretaria') {
-      axios.get('/api/estudiantes') // Cambiar esta URL por la ruta que maneja la lista de estudiantes
+      axios.get('http://localhost:5000/api/practicas')
         .then((response) => {
-          setEstudiantes(response.data);
+          if (Array.isArray(response.data)) {
+            setPracticas(response.data);
+            setError(null);
+          } else {
+            console.error('Error: Los datos no son un arreglo', response.data);
+            setError('Los datos no son un arreglo válido');
+          }
         })
         .catch((error) => {
-          console.error('Error al obtener la lista de estudiantes', error);
+          console.error('Error al obtener la lista de practicas', error);
+          setError('Error al obtener las prácticas');
         });
     }
   }, [user]);
@@ -58,52 +64,91 @@ function Proceso() {
     const formDataToSend = new FormData();
     formDataToSend.append('solicitud', formData.solicitud);
     formDataToSend.append('planPracticas', formData.planPracticas);
-    formDataToSend.append('correo', user.correo);  // Asegurarse de que 'user' esté definido
+    formDataToSend.append('correo', user.correo);
     formDataToSend.append('comentarios', comentarios);
-    formDataToSend.append('estado', estado);
+    formDataToSend.append('estado_proceso', estado);
 
-    axios.post('http://localhost:5000/api/inscripcion-plan', formDataToSend, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+    axios.post('http://localhost:5000/api/practicas', formDataToSend, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     })
-    .then((response) => {
-      alert(response.data.message);
-    })
-    .catch((error) => {
-      alert('Error al enviar los archivos');
-    });
+      .then((response) => {
+        alert(response.data.message);
+      })
+      .catch((error) => {
+        alert('Error al enviar los archivos');
+      });
   };
 
-  const handleUpdateState = (correoEstudiante) => {
-    axios.put('/api/actualizar-estado', {
-      correo: correoEstudiante,
-      estado: estado,
-      comentarios: comentarios,
+  const handleUpdateState = (idPractica) => {
+    axios.put('http://localhost:5000/api/actualizar-estado', {
+      idPractica,
+      estado,
+      comentarios,
     })
-    .then((response) => {
-      alert(response.data.message);
-    })
-    .catch((error) => {
-      alert('Error al actualizar el estado');
-    });
+      .then((response) => {
+        alert(response.data.message);
+        setPracticas((prevPracticas) =>
+          prevPracticas.map((practica) =>
+            practica.id === idPractica ? { ...practica, estado_proceso: estado, comentarios } : practica
+          )
+        );
+      })
+      .catch((error) => {
+        alert('Error al actualizar el estado');
+      });
   };
 
   return (
     <div>
       {userRole === 'secretaria' ? (
         <div>
-          <h3>Lista de Estudiantes</h3>
-          <ul>
-            {estudiantes.map((estudiante) => (
-              <li key={estudiante.id}>
-                {estudiante.nombres} - {estudiante.estado}
-                <button onClick={() => handleUpdateState(estudiante.correo)}>
-                  Cambiar estado
-                </button>
-              </li>
-            ))}
-          </ul>
+          <h3>Lista de Prácticas</h3>
+          {error ? (
+            <div>Error: {error}</div>
+          ) : practicas.length > 0 ? (
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #ccc' }}>
+                  <th style={{ padding: '8px', textAlign: 'left' }}>ID Estudiante</th>
+                  <th style={{ padding: '8px', textAlign: 'left' }}>Correo Estudiante</th>
+                  <th style={{ padding: '8px', textAlign: 'left' }}>Solicitud Inscripción</th>
+                  <th style={{ padding: '8px', textAlign: 'left' }}>Plan de Prácticas</th>
+                  <th style={{ padding: '8px', textAlign: 'left' }}>Estado Proceso</th>
+                  <th style={{ padding: '8px', textAlign: 'left' }}>Comentarios</th>
+                  <th style={{ padding: '8px', textAlign: 'left' }}>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {practicas.sort((a, b) => a.id_estudiante - b.id_estudiante).map((practica) => (
+                  <tr key={practica.id} style={{ borderBottom: '1px solid #ddd' }}>
+                    <td style={{ padding: '8px' }}>{practica.id_estudiante}</td>
+                    <td style={{ padding: '8px' }}>{practica.correo}</td>
+                    <td style={{ padding: '8px' }}>{practica.solicitud_inscripcion}</td>
+                    <td style={{ padding: '8px' }}>{practica.plan_practicas}</td>
+                    <td style={{ padding: '8px' }}>{practica.estado_proceso}</td>
+                    <td style={{ padding: '8px' }}>{practica.comentarios}</td>
+                    <td style={{ padding: '8px' }}>
+                      <button
+                        onClick={() => handleUpdateState(practica.id)}
+                        style={{
+                          backgroundColor: '#4CAF50',
+                          color: 'white',
+                          padding: '8px 16px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          borderRadius: '4px',
+                        }}
+                      >
+                        Actualizar Estado
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p>No se encontraron prácticas.</p>
+          )}
         </div>
       ) : (
         <div>
@@ -111,27 +156,17 @@ function Proceso() {
           <form onSubmit={handleSubmit}>
             <label>
               Solicitud de Inscripción:
-              <input
-                type="file"
-                name="solicitud"
-                onChange={handleFileChange}
-                required
-              />
+              <input type="file" name="solicitud" onChange={handleFileChange} required />
             </label>
             <br />
             <label>
               Plan de Prácticas:
-              <input
-                type="file"
-                name="planPracticas"
-                onChange={handleFileChange}
-                required
-              />
+              <input type="file" name="planPracticas" onChange={handleFileChange} required />
             </label>
             <br />
             <label>
               Estado:
-              <select value={estado} onChange={handleEstadoChange}>
+              <select value={estado} onChange={handleEstadoChange} disabled>
                 <option value="pendiente">Pendiente</option>
                 <option value="aprobado">Aprobado</option>
                 <option value="rechazado">Rechazado</option>
@@ -140,10 +175,7 @@ function Proceso() {
             <br />
             <label>
               Comentarios:
-              <textarea
-                value={comentarios}
-                onChange={handleComentariosChange}
-              />
+              <textarea value={comentarios} onChange={handleComentariosChange} required />
             </label>
             <br />
             <button type="submit">Enviar</button>
