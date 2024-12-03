@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-function Proceso() {
+// Asegúrate de tener FontAwesome para los iconos
+import { FaFileAlt, FaFileImage, FaDownload } from 'react-icons/fa';
+
+function proceso() {
   const [userRole, setUserRole] = useState(null);
   const [practicas, setPracticas] = useState([]);
   const [estado, setEstado] = useState({});
@@ -11,9 +14,10 @@ function Proceso() {
     planPracticas: null
   });
   const [error, setError] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false); // Estado para controlar la visibilidad del modal
-  const [comentarioTemp, setComentarioTemp] = useState(""); // Estado para almacenar el comentario temporal
-  const [modalPracticaId, setModalPracticaId] = useState(null); // ID de la práctica para la que se escribe el comentario
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [comentarioTemp, setComentarioTemp] = useState("");
+  const [modalPracticaId, setModalPracticaId] = useState(null);
+  const [filePreview, setFilePreview] = useState(null); // Para manejar la vista previa de archivos
 
   const user = JSON.parse(localStorage.getItem('usuario'));
 
@@ -43,7 +47,7 @@ function Proceso() {
   const handleEstadoChange = (id, e) => {
     setEstado((prevEstado) => ({
       ...prevEstado,
-      [id]: e.target.value, // Cambiar el estado de la práctica seleccionada
+      [id]: e.target.value,
     }));
   };
 
@@ -60,6 +64,18 @@ function Proceso() {
       ...prevData,
       [name]: files[0]
     }));
+  };
+
+  const handleFilePreview = (file) => {
+    const fileType = file.type.split('/')[0]; // obtener el tipo de archivo
+
+    if (fileType === 'image') {
+      const reader = new FileReader();
+      reader.onload = (e) => setFilePreview(e.target.result);
+      reader.readAsDataURL(file);
+    } else {
+      setFilePreview(null); // Si no es imagen, no mostrar vista previa
+    }
   };
 
   const handleSubmit = (e) => {
@@ -121,9 +137,8 @@ function Proceso() {
   };
 
   const openModal = (idPractica) => {
-    // Cargar el comentario almacenado en el estado para esta práctica
     setComentarioTemp(comentarios[idPractica] || ""); 
-    setModalPracticaId(idPractica); // Guardar el ID de la práctica en el que se está escribiendo el comentario
+    setModalPracticaId(idPractica);
     setIsModalOpen(true);
   };
 
@@ -133,7 +148,6 @@ function Proceso() {
 
   const saveComentario = () => {
     if (modalPracticaId !== null) {
-      // Guardar el comentario en el estado correspondiente
       setComentarios((prevComentarios) => ({
         ...prevComentarios,
         [modalPracticaId]: comentarioTemp,
@@ -142,17 +156,16 @@ function Proceso() {
     closeModal();
   };
 
-  // Función para obtener el color de fondo y texto del estado
   const getEstadoStyles = (estado) => {
     switch (estado) {
       case 'Pendiente':
-        return { backgroundColor: '#FFA500', color: 'black' }; // Naranja
+        return { backgroundColor: '#FFA500', color: 'black' };
       case 'Aprobado':
-        return { backgroundColor: '#4CAF50', color: 'white' }; // Verde
+        return { backgroundColor: '#4CAF50', color: 'white' };
       case 'Rechazado':
-        return { backgroundColor: '#f44336', color: 'white' }; // Rojo
+        return { backgroundColor: '#f44336', color: 'white' };
       default:
-        return { backgroundColor: '#ffffff', color: 'black' }; // Blanco por defecto
+        return { backgroundColor: '#ffffff', color: 'black' };
     }
   };
 
@@ -181,55 +194,57 @@ function Proceso() {
                   <tr key={practica.id} style={{ borderBottom: '1px solid #ddd' }}>
                     <td style={{ padding: '1px', textAlign: 'center', fontSize: '12px' }}>{practica.id_estudiante}</td>
                     <td style={{ padding: '1px', textAlign: 'center', fontSize: '12px' }}>{practica.correo}</td>
-                    <td style={{ padding: '1px', textAlign: 'center', fontSize: '12px' }}>{practica.solicitud_inscripcion}</td>
-                    <td style={{ padding: '1px', textAlign: 'center', fontSize: '12px' }}>{practica.plan_practicas}</td>
+                    <td style={{ padding: '1px', textAlign: 'center', fontSize: '12px' }}>
+                      <FaFileAlt /> {/* Icono para archivo */}
+                      <a href={`http://localhost:5000/uploads/${practica.solicitud_inscripcion}`} target="_blank" rel="noopener noreferrer">
+                        Ver archivo
+                      </a>
+
+
+                    </td>
+                    <td style={{ padding: '1px', textAlign: 'center', fontSize: '12px' }}>
+                      <FaFileAlt /> {/* Icono para archivo */}
+                      <a href={`http://localhost:5000/uploads/${practica.plan_practicas}`} target="_blank" rel="noopener noreferrer">
+                        Ver archivo
+                      </a>
+
+                    </td>
                     <td style={{ padding: '1px', textAlign: 'center', fontSize: '12px' }}>
                       <select
-                        value={estado[practica.id] || 'Seleccionar Estado'}
+                        value={estado[practica.id] || 'Pendiente'}
                         onChange={(e) => handleEstadoChange(practica.id, e)}
-                        style={{
-                          padding: '4px',
-                          fontSize: '12px',
-                          backgroundColor: getEstadoStyles(estado[practica.id]).backgroundColor, // Fondo del select
-                          color: getEstadoStyles(estado[practica.id]).color, // Color del texto
-                          borderRadius: '4px',
-                          border: '1px solid #ccc',
-                        }}
+                        style={{ padding: '2px', fontSize: '12px' }}
                       >
-                        <option value="Seleccionar Estado" disabled>Seleccionar Estado</option>
                         <option value="Pendiente">Pendiente</option>
                         <option value="Aprobado">Aprobado</option>
                         <option value="Rechazado">Rechazado</option>
                       </select>
                     </td>
-                    <td style={{ padding: '1px', textAlign: 'center' }}>
-                      <button
-                        onClick={() => openModal(practica.id)}
-                        style={{
-                          backgroundColor: '#4CAF50',
-                          color: 'white',
-                          border: 'none',
-                          cursor: 'pointer',
-                          borderRadius: '4px',
-                          padding: '8px 16px',
-                        }}
-                      >
-                        Comentario
-                      </button>
+                    <td style={{ padding: '1px', textAlign: 'center', fontSize: '12px' }}>
+                      <input
+                        type="text"
+                        value={comentarios[practica.id] || ''}
+                        onChange={(e) => handleComentariosChange(practica.id, e)}
+                        style={{ padding: '5px', fontSize: '12px', width: '200px' }}
+                      />
                     </td>
-                    <td style={{ padding: '1px', textAlign: 'center' }}>
+                    <td style={{ padding: '1px', textAlign: 'center', fontSize: '12px' }}>
                       <button
                         onClick={() => handleUpdateState(practica.id)}
-                        style={{
-                          backgroundColor: '#4CAF50',
-                          color: 'white',
-                          padding: '8px 16px',
-                          border: 'none',
-                          cursor: 'pointer',
-                          borderRadius: '4px',
-                        }}
+                        style={{ padding: '5px 10px', fontSize: '12px', marginRight: '5px' }}
                       >
                         Actualizar
+                      </button>
+                      <button
+                        onClick={() => openModal(practica.id)}
+                        style={{ padding: '5px 10px', fontSize: '12px' }}
+                      >
+                        Ver Comentarios
+                      </button>
+                      <button
+                        style={{ padding: '5px 10px', fontSize: '12px', marginTop: '5px', display: 'block' }}
+                      >
+                        UNIBOT
                       </button>
                     </td>
                   </tr>
@@ -237,10 +252,10 @@ function Proceso() {
               </tbody>
             </table>
           ) : (
-            <p>No se encontraron prácticas.</p>
+            <p>No hay prácticas registradas.</p>
           )}
         </div>
-      ) : (
+      ) : userRole === 'estudiante' ? (
         <div>
           <h3>Formulario de Inscripción</h3>
           <form onSubmit={handleSubmit}>
@@ -257,62 +272,22 @@ function Proceso() {
             <button type="submit">Enviar</button>
           </form>
         </div>
-      )}
+      ) : null}
 
-      {/* Modal para escribir comentario */}
+      {/* Modal para comentarios */}
       {isModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: '0',
-          left: '0',
-          width: '100%',
-          height: '100%',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '20px',
-            borderRadius: '8px',
-            width: '400px',
-            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
-          }}>
-            <h4>Escribir Comentario</h4>
+        <div className="modal">
+          <div className="modal-content">
+            <span className="close" onClick={closeModal}>&times;</span>
+            <h4>Comentario para la práctica</h4>
             <textarea
               value={comentarioTemp}
               onChange={(e) => setComentarioTemp(e.target.value)}
-              style={{ width: '100%', height: '100px', padding: '2px', marginBottom: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
+              rows="4"
+              cols="50"
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <button
-                onClick={saveComentario}
-                style={{
-                  backgroundColor: '#4CAF50',
-                  color: 'white',
-                  padding: '8px 16px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  borderRadius: '9px',
-                }}
-              >
-                Listo
-              </button>
-              <button
-                onClick={closeModal}
-                style={{
-                  backgroundColor: '#f44336',
-                  color: 'white',
-                  padding: '8px 15px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  borderRadius: '9px',
-                }}
-              >
-                Cerrar
-              </button>
-            </div>
+            <br />
+            <button onClick={saveComentario}>Guardar Comentario</button>
           </div>
         </div>
       )}
@@ -320,4 +295,4 @@ function Proceso() {
   );
 }
 
-export default Proceso;
+export default proceso;

@@ -5,8 +5,10 @@ import DashboardFooter from './components/DashboardFooter';
 import DashboardMain from './components/DashboardMain';
 import Login from './components/Login';
 import VistaOpcion from './components/VistaOpcion';
-import Proceso from './components/Proceso'; // Componente para mostrar el proceso
-import Macroprocesos from './pages/Macroprocesos';
+import ProcesoInscripcion from './pages/PracticasPreprofesionales/ProcesoInscripcion'; // Componente específico para Inscripción
+// Importar los procesos de admisión desde el archivo de exportación
+import { Proceso1, Proceso2, Proceso3 } from './pages/Admision/ProcesosAdmision'; // Importación única
+
 import './styles/Global.css';
 
 // Componente para proteger las rutas
@@ -42,23 +44,32 @@ function App() {
         />
 
         {/* Ruta para las opciones dentro del Dashboard */}
-        <Route path="/dashboard/:opcion/" element={
-          <ProtectedRoute
-            element={
-              <>
-                <DashboardHeader />
-                <VistaOpcion /> {/* Mostrar la opción seleccionada */}
-                <DashboardFooter />
-              </>
-            }
-          />
-        }>
-          {/* Ruta para los procesos dentro de cada opción */}
-          <Route path=":proceso" element={<ProtectedRoute element={<Proceso />} />} />
-        </Route>
+        <Route
+          path="/dashboard/:opcion"
+          element={
+            <ProtectedRoute
+              element={
+                <>
+                  <DashboardHeader />
+                  <VistaOpcion /> {/* Mostrar la opción seleccionada */}
+                  <DashboardFooter />
+                </>
+              }
+            />
+          }
+        >
+          {/* Rutas para los procesos dentro de cada opción */}
+          {/* Ruta específica para 'Revisión e inscripción del plan' */}
+          <Route path="revision-inscripcion" element={<ProtectedRoute element={<ProcesoInscripcion />} />} />
+          <Route path="revision-informes" element={<ProtectedRoute element={<ProcesoInscripcion />} />} />
+          <Route path="informefinal-certificado" element={<ProtectedRoute element={<ProcesoInscripcion />} />} />
+          <Route path="Convalidación-experiencialaboral" element={<ProtectedRoute element={<ProcesoInscripcion />} />} />
 
-        {/* Ruta para otras páginas */}
-        <Route path="/Sistemas/Macroprocesos" element={<ProtectedRoute element={<Macroprocesos />} />} />
+          {/* Rutas específicas para 'Admision' con diferentes procesos */}
+          <Route path="proceso-1" element={<ProtectedRoute element={<Proceso1 />} />} />
+          <Route path="proceso-2" element={<ProtectedRoute element={<Proceso2 />} />} />
+          <Route path="proceso-3" element={<ProtectedRoute element={<Proceso3 />} />} />
+        </Route>
       </Routes>
     </Router>
   );

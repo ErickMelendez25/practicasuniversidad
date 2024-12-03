@@ -7,10 +7,10 @@ const VistaOpcion = () => {
   // Define los procesos según la opción
   const procesos = {
     'practicas-preprofesionales': [
-      'Revisión e inscripcion del plan',
-      'Revisión de informes',
-      'Inscripción del informe final y emisión de certificado',
-      'Convalidación de prácticas por experiencia laboral'
+      'revision-inscripcion',
+      'revision-informes',
+      'informefinal-certificado',
+      'Convalidación-experiencialaboral'
     ],
     'admision': [
       'Proceso-1',
@@ -36,12 +36,9 @@ const VistaOpcion = () => {
 
   return (
     <div className="vista-opcion">
-      
-
       <div className="vista-opcion-content">
         {/* Lista de procesos a la izquierda */}
         <div className="procesos-lista">
-          
           {renderProcesos()}
         </div>
 

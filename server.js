@@ -4,7 +4,11 @@ import bcrypt from 'bcryptjs';
 import cors from 'cors';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 import jwt from 'jsonwebtoken';
+
+// Obtener la ruta del directorio actual (corregido para Windows)
+const __dirname = path.resolve();
 
 const app = express();
 const port = 5000;
@@ -12,22 +16,31 @@ const port = 5000;
 app.use(express.json());
 app.use(cors());
 
+// Verificar si la carpeta 'uploads' existe, si no, crearla
+const uploadDirectory = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDirectory)) {
+  fs.mkdirSync(uploadDirectory, { recursive: true });
+}
+
 // Configuración de almacenamiento de archivos con multer
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    // Asegúrate de que la carpeta 'uploads' exista
-    cb(null, 'uploads/');
+    cb(null, uploadDirectory);
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
+    cb(null, Date.now() + path.extname(file.originalname)); // Usar la fecha para garantizar nombres únicos
   }
 });
+
 const upload = multer({
   storage: storage,
   limits: {
     fileSize: 10 * 1024 * 1024, // Limitar el tamaño a 10MB por archivo
   },
 });
+
+// Servir archivos estáticos desde la carpeta 'uploads'
+app.use('/uploads', express.static(uploadDirectory));
 
 // Configuración de la base de datos
 const db = mysql.createConnection({
@@ -81,13 +94,11 @@ app.post('/login', (req, res) => {
         return res.status(400).json({ message: 'Contraseña incorrecta' });
       }
 
-      // Obtener el id_estudiante de la tabla estudiantes usando el correo
       db.query('SELECT id FROM estudiantes WHERE correo = ?', [user.correo], (err, studentResult) => {
         if (err) {
           console.error('Error al consultar el estudiante:', err);
           return res.status(500).json({ message: 'Error en el servidor' });
         }
-        
 
         const id_estudiante = studentResult.length > 0 ? studentResult[0].id : null;
 
@@ -106,35 +117,6 @@ app.post('/login', (req, res) => {
   });
 });
 
-
-// Ruta para registrar un usuario (con contraseña cifrada)
-app.post('/register', (req, res) => {
-  const { correo, password, rol } = req.body;
-
-  if (!correo || !password || !rol) {
-    return res.status(400).json({ message: 'Correo, contraseña y rol son requeridos' });
-  }
-
-  // Cifrar la contraseña
-  bcrypt.hash(password, 10, (err, hashedPassword) => {
-    if (err) {
-      console.error('Error al cifrar la contraseña:', err);
-      return res.status(500).json({ message: 'Error en el servidor' });
-    }
-
-    // Insertar el nuevo usuario con la contraseña cifrada
-    db.query('INSERT INTO usuarios (correo, password, rol) VALUES (?, ?, ?)', 
-    [correo, hashedPassword, rol], (err, result) => {
-      if (err) {
-        console.error('Error al guardar el usuario:', err);
-        return res.status(500).json({ message: 'Error al guardar el usuario' });
-      }
-      res.status(201).json({ message: 'Usuario registrado exitosamente' });
-    });
-  });
-});
-
-// Ruta para registrar la práctica (subir los archivos y agregar estado)
 // Ruta para registrar la práctica (subir los archivos y agregar estado)
 app.post('/api/practicas', upload.fields([
   { name: 'solicitud', maxCount: 1 },
@@ -151,14 +133,14 @@ app.post('/api/practicas', upload.fields([
     return res.status(400).json({ message: 'Ambos archivos son necesarios' });
   }
 
-  const solicitud = req.files.solicitud[0].path;
-  const planPracticas = req.files.planPracticas[0].path;
+  // Solo almacena los nombres de los archivos, no las rutas absolutas
+  const solicitud = req.files.solicitud[0].filename;  // Aquí tomas solo el nombre del archivo
+  const planPracticas = req.files.planPracticas[0].filename;  // Aquí tomas solo el nombre del archivo
 
-  // Aquí, asegúrate de que el estado_proceso sea un valor simple, no un objeto JSON
   const estado = JSON.parse(estado_proceso);  // Si envías un objeto JSON, lo parseas aquí
   const estadoFinal = estado[Object.keys(estado)[0]] || 'Pendiente';  // Toma el primer valor del objeto o 'Pendiente' como predeterminado
 
-  // Inserta en la base de datos
+  // Inserta en la base de datos solo el nombre del archivo
   db.query('INSERT INTO practicas (id_estudiante, solicitud_inscripcion, plan_practicas, estado_proceso, comentarios) VALUES (?, ?, ?, ?, ?)', 
     [id_estudiante, solicitud, planPracticas, estadoFinal, comentarios], 
     (err, result) => {
@@ -170,16 +152,13 @@ app.post('/api/practicas', upload.fields([
     });
 });
 
-
-
-// Ruta para obtener las prácticas
 // Ruta para obtener las prácticas
 app.get('/api/practicas', (req, res) => {
-  // Consulta para obtener todas las prácticas y el correo del estudiante
   const query = `
     SELECT p.*, e.correo
     FROM practicas p
     JOIN estudiantes e ON p.id_estudiante = e.id
+    ORDER BY p.fecha_creacion DESC;
   `;
   
   db.query(query, (err, result) => {
@@ -188,26 +167,20 @@ app.get('/api/practicas', (req, res) => {
       res.status(500).send('Error al obtener los datos de las prácticas');
       return;
     }
-
-    // Si la consulta fue exitosa, enviamos los resultados al frontend
     res.json(result);
   });
 });
-// Ruta para actualizar el estado de la práctica
-// Ejemplo de cómo podrías manejar la solicitud PUT en tu servidor (Node.js/Express)
+
 // Ruta para actualizar el estado de la práctica
 app.put('/api/actualizar-estado', (req, res) => {
   const { idPractica, estado, comentarios } = req.body;
 
-  // Mostrar los datos recibidos para depuración
   console.log('Datos recibidos en el servidor:', { idPractica, estado, comentarios });
 
-  // Validación de los datos recibidos
   if (!idPractica || !estado || !comentarios) {
     return res.status(400).json({ message: 'Faltan datos requeridos.' });
   }
 
-  // Si los datos son válidos, proceder con la actualización en la base de datos
   db.query(
     'UPDATE practicas SET estado_proceso = ?, comentarios = ? WHERE id = ?',
     [estado, comentarios, idPractica],
@@ -225,7 +198,6 @@ app.put('/api/actualizar-estado', (req, res) => {
     }
   );
 });
-
 
 // Función para cifrar todas las contraseñas de los usuarios
 const cifrarContraseñas = () => {
