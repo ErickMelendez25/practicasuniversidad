@@ -117,6 +117,33 @@ app.post('/login', (req, res) => {
   });
 });
 
+// Ruta para registrar un usuario (con contraseña cifrada)
+app.post('/register', (req, res) => {
+  const { correo, password, rol } = req.body;
+
+  if (!correo || !password || !rol) {
+    return res.status(400).json({ message: 'Correo, contraseña y rol son requeridos' });
+  }
+
+  // Cifrar la contraseña
+  bcrypt.hash(password, 10, (err, hashedPassword) => {
+    if (err) {
+      console.error('Error al cifrar la contraseña:', err);
+      return res.status(500).json({ message: 'Error en el servidor' });
+    }
+
+    // Insertar el nuevo usuario con la contraseña cifrada
+    db.query('INSERT INTO usuarios (correo, password, rol) VALUES (?, ?, ?)', 
+    [correo, hashedPassword, rol], (err, result) => {
+      if (err) {
+        console.error('Error al guardar el usuario:', err);
+        return res.status(500).json({ message: 'Error al guardar el usuario' });
+      }
+      res.status(201).json({ message: 'Usuario registrado exitosamente' });
+    });
+  });
+});
+
 // Ruta para registrar la práctica (subir los archivos y agregar estado)
 app.post('/api/practicas', upload.fields([
   { name: 'solicitud', maxCount: 1 },
@@ -124,7 +151,6 @@ app.post('/api/practicas', upload.fields([
 ]), (req, res) => {
   const { id_estudiante, comentarios, estado_proceso } = req.body;
 
-  // Verifica que id_estudiante no sea undefined
   if (!id_estudiante) {
     return res.status(400).json({ message: 'El ID del estudiante es requerido' });
   }
@@ -134,13 +160,21 @@ app.post('/api/practicas', upload.fields([
   }
 
   // Solo almacena los nombres de los archivos, no las rutas absolutas
-  const solicitud = req.files.solicitud[0].filename;  // Aquí tomas solo el nombre del archivo
-  const planPracticas = req.files.planPracticas[0].filename;  // Aquí tomas solo el nombre del archivo
+  const solicitud = req.files.solicitud[0].filename;
+  const planPracticas = req.files.planPracticas[0].filename;
 
-  const estado = JSON.parse(estado_proceso);  // Si envías un objeto JSON, lo parseas aquí
-  const estadoFinal = estado[Object.keys(estado)[0]] || 'Pendiente';  // Toma el primer valor del objeto o 'Pendiente' como predeterminado
+  let estadoFinal = 'Pendiente';
 
-  // Inserta en la base de datos solo el nombre del archivo
+  if (estado_proceso) {
+    try {
+      const estado = JSON.parse(estado_proceso);
+      estadoFinal = estado[Object.keys(estado)[0]] || 'Pendiente';
+    } catch (err) {
+      console.error('Error al parsear estado_proceso:', err);
+      return res.status(400).json({ message: 'El formato de estado_proceso es inválido' });
+    }
+  }
+
   db.query('INSERT INTO practicas (id_estudiante, solicitud_inscripcion, plan_practicas, estado_proceso, comentarios) VALUES (?, ?, ?, ?, ?)', 
     [id_estudiante, solicitud, planPracticas, estadoFinal, comentarios], 
     (err, result) => {
@@ -160,7 +194,7 @@ app.get('/api/practicas', (req, res) => {
     JOIN estudiantes e ON p.id_estudiante = e.id
     ORDER BY p.fecha_creacion DESC;
   `;
-  
+
   db.query(query, (err, result) => {
     if (err) {
       console.error('Error al ejecutar la consulta:', err);
@@ -173,30 +207,97 @@ app.get('/api/practicas', (req, res) => {
 
 // Ruta para actualizar el estado de la práctica
 app.put('/api/actualizar-estado', (req, res) => {
-  const { idPractica, estado, comentarios } = req.body;
+  const { idPractica, estado } = req.body;
 
-  console.log('Datos recibidos en el servidor:', { idPractica, estado, comentarios });
-
-  if (!idPractica || !estado || !comentarios) {
-    return res.status(400).json({ message: 'Faltan datos requeridos.' });
+  if (!idPractica || !estado) {
+    return res.status(400).json({ message: 'El ID de la práctica y el estado son requeridos' });
   }
 
-  db.query(
-    'UPDATE practicas SET estado_proceso = ?, comentarios = ? WHERE id = ?',
-    [estado, comentarios, idPractica],
-    (err, result) => {
+  try {
+    db.query('UPDATE practicas SET estado_proceso = ? WHERE id = ?', [estado, idPractica], async (err, result) => {
       if (err) {
-        console.error('Error al actualizar el estado de la práctica:', err);
+        console.error('Error al actualizar el estado:', err);
         return res.status(500).json({ message: 'Error al actualizar el estado' });
       }
 
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ message: 'Práctica no encontrada.' });
-      }
+      const [practica] = await db.promise().query('SELECT id_estudiante FROM practicas WHERE id = ?', [idPractica]);
+      const { id_estudiante } = practica[0];
 
-      res.status(200).json({ message: 'Estado actualizado correctamente.' });
+      const mensaje = `El estado de tu práctica ha cambiado a: ${estado}`;
+      await db.promise().query('INSERT INTO notificaciones (id_estudiante, mensaje) VALUES (?, ?)', [id_estudiante, mensaje]);
+
+      res.status(200).json({ message: 'Estado actualizado y notificación enviada' });
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al actualizar el estado', error: error.message });
+  }
+});
+
+// Ruta para obtener los comentarios de la comisión
+app.get('/api/comentarios', (req, res) => {
+  const { idPractica } = req.query;
+
+  if (!idPractica) {
+    return res.status(400).json({ message: 'El ID de la práctica es requerido' });
+  }
+
+  db.query('SELECT * FROM libro_inscripcion WHERE id_practica = ?', [idPractica], (err, result) => {
+    if (err) {
+      console.error('Error al obtener los comentarios:', err);
+      return res.status(500).json({ message: 'Error al obtener los comentarios' });
     }
-  );
+
+    res.status(200).json(result);
+  });
+});
+
+// Ruta para guardar los comentarios en la tabla 'practicas'
+app.post('/api/comentarios', (req, res) => {
+  const { idPractica, comentario } = req.body;
+
+  const query = `
+    UPDATE practicas
+    SET comentarios = ?
+    WHERE id = ?
+  `;
+
+  db.query(query, [comentario, idPractica], (err, result) => {
+    if (err) {
+      console.error('Error al actualizar el comentario:', err);
+      return res.status(500).send('Error al guardar el comentario');
+    }
+    res.status(200).send('Comentario guardado');
+  });
+});
+
+// Ruta para inscribir la práctica y actualizar el estado en la tabla 'practicas'
+app.post('/api/inscribir', (req, res) => {
+  const { idPractica, estado, comentarios } = req.body;
+
+  const query = `
+    UPDATE practicas
+    SET estado_proceso = ?, estado_secretaria = ?, comentarios = ?
+    WHERE id = ?
+  `;
+
+  db.query(query, [estado, estado, comentarios, idPractica], (err, result) => {
+    if (err) {
+      console.error('Error al inscribir la práctica:', err);
+      return res.status(500).send('Error al inscribir la práctica');
+    }
+
+    const notificationQuery = `
+      INSERT INTO notificaciones (id_estudiante, mensaje)
+      VALUES (?, ?)
+    `;
+    db.query(notificationQuery, [idEstudiante, `Tu inscripción en la práctica ha sido ${estado}.`], (err2) => {
+      if (err2) {
+        console.error('Error al agregar la notificación al estudiante:', err2);
+      }
+    });
+
+    res.status(200).send('Práctica inscrita y notificación enviada');
+  });
 });
 
 // Función para cifrar todas las contraseñas de los usuarios
