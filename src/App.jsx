@@ -6,10 +6,13 @@ import DashboardMain from './components/DashboardMain';
 import Login from './components/Login';
 import VistaOpcion from './components/VistaOpcion';
 import ProcesoInscripcion from './pages/PracticasPreprofesionales/ProcesoInscripcion'; // Componente específico para Inscripción
+import ProcesoRevisionInformes from './pages/PracticasPreprofesionales/ProcesoRevisionInformes'; // Componente específico para Inscripción
 // Importar los procesos de admisión desde el archivo de exportación
 import { Proceso1, Proceso2, Proceso3 } from './pages/Admision/ProcesosAdmision'; // Importación única
 
 import './styles/Global.css';
+
+
 
 // Componente para proteger las rutas
 function ProtectedRoute({ element }) {
@@ -61,7 +64,7 @@ function App() {
           {/* Rutas para los procesos dentro de cada opción */}
           {/* Ruta específica para 'Revisión e inscripción del plan' */}
           <Route path="revision-inscripcion" element={<ProtectedRoute element={<ProcesoInscripcion />} />} />
-          <Route path="revision-informes" element={<ProtectedRoute element={<ProcesoInscripcion />} />} />
+          <Route path="revision-informes" element={<ProtectedRoute element={<ProcesoRevisionInformes />} />} />
           <Route path="informefinal-certificado" element={<ProtectedRoute element={<ProcesoInscripcion />} />} />
           <Route path="Convalidación-experiencialaboral" element={<ProtectedRoute element={<ProcesoInscripcion />} />} />
 

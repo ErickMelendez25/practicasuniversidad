@@ -335,6 +335,96 @@ const cifrarContraseñas = () => {
   });
 };
 
+
+// Ruta para obtener las notificaciones del estudiante
+app.get('/api/notificaciones', (req, res) => {
+  const { id_estudiante } = req.query;
+
+  if (!id_estudiante) {
+    return res.status(400).json({ message: 'El ID del estudiante es requerido' });
+  }
+
+  db.query('SELECT * FROM notificaciones WHERE id_estudiante = ? ORDER BY fecha DESC', [id_estudiante], (err, result) => {
+    if (err) {
+      console.error('Error al obtener las notificaciones:', err);
+      return res.status(500).json({ message: 'Error al obtener las notificaciones' });
+    }
+
+    res.status(200).json(result);
+  });
+});
+
+
+
+//PROCESO 2 REVISON DE INFORMES
+
+// Ruta para recibir los informes de los estudiantes
+app.post('/api/informes/avance', upload.single('avance'), (req, res) => {
+  // Guardar la información del archivo en la base de datos y asignar el estado
+  const informe = { id_estudiante: req.body.id_estudiante, avance: req.file.filename, estado: 'Pendiente' };
+  // Aquí deberías guardar la información en la base de datos
+  res.send({ message: 'Informe de avance recibido exitosamente' });
+});
+
+app.post('/api/informes/asesoria', upload.single('asesoria'), (req, res) => {
+  // Guardar el informe de asesoría
+  const asesoria = { id_estudiante: req.body.id_estudiante, asesoria: req.file.filename, estado: 'Pendiente' };
+  // Aquí deberías guardar la información en la base de datos
+  res.send({ message: 'Informe de asesoría recibido exitosamente' });
+});
+
+app.post('/api/informes/ampliacion', upload.single('ampliacion'), (req, res) => {
+  // Guardar la solicitud de ampliación
+  const ampliacion = { id_estudiante: req.body.id_estudiante, ampliacion: req.file.filename };
+  // Aquí deberías guardar la información en la base de datos
+  res.send({ message: 'Solicitud de ampliación recibida exitosamente' });
+});
+
+app.post('/api/informes/final', upload.single('final'), (req, res) => {
+  // Guardar el informe final
+  const final = { id_estudiante: req.body.id_estudiante, final: req.file.filename, estado: 'Pendiente' };
+  // Aquí deberías guardar la información en la base de datos
+  res.send({ message: 'Informe final recibido exitosamente' });
+});
+
+// Ruta para actualizar el estado del informe
+app.put('/api/actualizar-estado', (req, res) => {
+  const { idInforme, estado } = req.body;
+  // Aquí deberías actualizar el estado en la base de datos
+  res.send({ message: 'Estado actualizado' });
+});
+
+// Función para enviar correo electrónico al estudiante
+function sendEmailToStudent(idEstudiante, message) {
+  // Configura tu servicio de correo (ejemplo con Gmail)
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: 'your_email@gmail.com',
+      pass: 'your_email_password'
+    }
+  });
+
+  // Aquí debes recuperar el correo del estudiante de tu base de datos
+  const studentEmail = 'student_email@example.com';
+
+  const mailOptions = {
+    from: 'your_email@gmail.com',
+    to: studentEmail,
+    subject: 'Resultado de tu Informe Final',
+    text: message
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error('Error al enviar correo:', error);
+      return;
+    }
+    console.log('Correo enviado: ' + info.response);
+  });
+}
+
+
 app.listen(port, () => {
   console.log(`Servidor corriendo en http://localhost:${port}`);
 });
