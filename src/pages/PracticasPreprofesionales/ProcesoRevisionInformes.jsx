@@ -12,6 +12,10 @@ function ProcesoRevisionInformes() {
   const [ampliacionFile, setAmpliacionFile] = useState(null);
   const [finalFile, setFinalFile] = useState(null);
   const [docenteComentarios, setDocenteComentarios] = useState({});
+  const [asesores, setAsesores] = useState([]);
+  const [estudiantes, setEstudiantes] = useState([]);
+  const [selectedAsesor, setSelectedAsesor] = useState('');
+  const [selectedEstudiante, setSelectedEstudiante] = useState('');
 
   const user = JSON.parse(localStorage.getItem('usuario'));
 
@@ -39,6 +43,24 @@ function ProcesoRevisionInformes() {
         });
     }
 
+    // Obtener la lista de asesores
+    axios.get('http://localhost:5000/api/asesores')
+      .then(response => {
+        setAsesores(response.data);
+      })
+      .catch(error => {
+        console.error('Error al obtener los asesores', error);
+      });
+
+    // Obtener la lista de estudiantes
+    axios.get('http://localhost:5000/api/estudiantes')
+      .then(response => {
+        setEstudiantes(response.data);
+      })
+      .catch(error => {
+        console.error('Error al obtener los estudiantes', error);
+      });
+
     if (user && user.rol === 'estudiante') {
       axios.get(`http://localhost:5000/api/notificaciones?id_estudiante=${user.id_estudiante}`)
         .then(response => {
@@ -62,55 +84,55 @@ function ProcesoRevisionInformes() {
     }
   };
 
+  const submitInforme = async (file, tipo, selectedAsesor, selectedEstudiante) => {
+    const formData = new FormData();
+    formData.append(tipo, file);
+    
+    if (selectedAsesor) formData.append('id_asesor', selectedAsesor);
+    if (selectedEstudiante) formData.append('id_estudiante', selectedEstudiante);
+
+    try {
+      const response = await axios.post(`http://localhost:5000/api/informes/${tipo}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (response.status === 200) {
+        alert(`${tipo} enviado exitosamente`);
+      } else {
+        alert('Error en el servidor, no se pudo procesar el informe');
+      }
+    } catch (error) {
+      console.error(`Error al enviar el informe de ${tipo}:`, error.response || error.message);
+      alert('Error al enviar el informe');
+    }
+  };
+
   const handleSubmit = async (e, tipo) => {
     e.preventDefault();
     let file = null;
-    let endpoint = '';
-    if (tipo === 'avance') {
-      if (!avanceFile) {
-        alert('Informe de avance requerido');
-        return;
-      }
-      file = avanceFile;
-      endpoint = 'avance';
-    } else if (tipo === 'asesoria') {
-      if (!asesoriaFile) {
-        alert('Informe de asesoría requerido');
-        return;
-      }
-      file = asesoriaFile;
-      endpoint = 'asesoria';
-    } else if (tipo === 'ampliacion') {
-      if (!ampliacionFile) {
-        alert('Solicitud de ampliación de plazo requerida');
-        return;
-      }
-      file = ampliacionFile;
-      endpoint = 'ampliacion';
-    } else if (tipo === 'final') {
-      if (!finalFile) {
-        alert('Informe final requerido');
-        return;
-      }
-      file = finalFile;
-      endpoint = 'final';
+
+    // Validación y asignación del archivo según el tipo
+    if (tipo === 'avance' && !avanceFile) {
+      alert('Debe seleccionar un informe de avance.');
+      return;
+    } else if (tipo === 'asesoria' && (!asesoriaFile || !selectedEstudiante || !selectedAsesor)) {
+      alert('Informe de asesoría, estudiante y asesor requeridos');
+      return;
+    } else if (tipo === 'ampliacion' && !ampliacionFile) {
+      alert('Solicitud de ampliación de plazo requerida');
+      return;
+    } else if (tipo === 'final' && !finalFile) {
+      alert('Informe final requerido');
+      return;
     }
 
-    const formData = new FormData();
-    formData.append(tipo, file);
-    formData.append('id_estudiante', user.id_estudiante);
+    // Asignar el archivo al tipo correspondiente
+    if (tipo === 'avance') file = avanceFile;
+    if (tipo === 'asesoria') file = asesoriaFile;
+    if (tipo === 'ampliacion') file = ampliacionFile;
+    if (tipo === 'final') file = finalFile;
 
-    try {
-      await axios.post(`http://localhost:5000/api/informes/${endpoint}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      alert('Documento enviado exitosamente');
-    } catch (error) {
-      console.error('Error al enviar documentos:', error);
-      alert('Error al enviar documentos');
-    }
+    // Llamar a la función para enviar el archivo
+    submitInforme(file, tipo, selectedAsesor, selectedEstudiante);
   };
 
   const handleEstadoChange = (id, e) => {
@@ -156,25 +178,22 @@ function ProcesoRevisionInformes() {
       {/* Vista Estudiante */}
       {userRole === 'estudiante' && (
         <div>
-          <h3>Formulario de Envío de Informe de Avance</h3>
+          <h3>Informe de Avance</h3>
           <form onSubmit={(e) => handleSubmit(e, 'avance')}>
             <label>Informe de Avance:</label>
             <input type="file" name="avance" onChange={handleFileChange} required />
+            <div>
+              <label>Seleccionar Asesor:</label>
+              <select value={selectedAsesor} onChange={(e) => setSelectedAsesor(e.target.value)} required>
+                <option value="">Seleccionar Asesor</option>
+                {asesores.map((asesor) => (
+                  <option key={asesor.id} value={asesor.id}>
+                    {asesor.dni} - {asesor.nombre} {asesor.apellido}
+                  </option>
+                ))}
+              </select>
+            </div>
             <button type="submit">Enviar Informe de Avance</button>
-          </form>
-
-          <h3>Solicitud de Ampliación de Plazo</h3>
-          <form onSubmit={(e) => handleSubmit(e, 'ampliacion')}>
-            <label>Solicitud de Ampliación de Plazo:</label>
-            <input type="file" name="ampliacion" onChange={handleFileChange} required />
-            <button type="submit">Enviar Solicitud de Ampliación</button>
-          </form>
-
-          <h3>Informe Final</h3>
-          <form onSubmit={(e) => handleSubmit(e, 'final')}>
-            <label>Informe Final:</label>
-            <input type="file" name="final" onChange={handleFileChange} required />
-            <button type="submit">Enviar Informe Final</button>
           </form>
         </div>
       )}
@@ -182,90 +201,34 @@ function ProcesoRevisionInformes() {
       {/* Vista Asesor */}
       {userRole === 'asesor' && (
         <div>
-          <h3>Formulario de Envío de Informe de Asesoría</h3>
+          <h3>Informe de Asesoría</h3>
           <form onSubmit={(e) => handleSubmit(e, 'asesoria')}>
             <label>Informe de Asesoría:</label>
             <input type="file" name="asesoria" onChange={handleFileChange} required />
+            <div>
+              <label>Seleccionar Estudiante:</label>
+              <select value={selectedEstudiante} onChange={(e) => setSelectedEstudiante(e.target.value)} required>
+                <option value="">Seleccionar Estudiante</option>
+                {estudiantes.map((estudiante) => (
+                  <option key={estudiante.id} value={estudiante.id}>
+                    {estudiante.dni} - {estudiante.nombre} {estudiante.apellido}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label>Seleccionar Asesor:</label>
+              <select value={selectedAsesor} onChange={(e) => setSelectedAsesor(e.target.value)} required>
+                <option value="">Seleccionar Asesor</option>
+                {asesores.map((asesor) => (
+                  <option key={asesor.id} value={asesor.id}>
+                    {asesor.dni} - {asesor.nombre} {asesor.apellido}
+                  </option>
+                ))}
+              </select>
+            </div>
             <button type="submit">Enviar Informe de Asesoría</button>
           </form>
-        </div>
-      )}
-
-      {/* Vista Comisión de Prácticas */}
-      {userRole === 'comision' && (
-        <div>
-          <h3>Revisión de Informes</h3>
-          {informes.length > 0 ? (
-            <table>
-              <thead>
-                <tr>
-                  <th>ID Estudiante</th>
-                  <th>Informe</th>
-                  <th>Estado</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {informes.map((informe) => (
-                  <tr key={informe.id}>
-                    <td>{informe.id_estudiante}</td>
-                    <td><a href={`http://localhost:5000/uploads/${informe.avance}`} target="_blank">Ver Informe</a></td>
-                    <td>
-                      <select value={estado[informe.id]} onChange={(e) => handleEstadoChange(informe.id, e)}>
-                        <option value="Pendiente">Pendiente</option>
-                        <option value="Aprobado">Aprobado</option>
-                        <option value="Rechazado">Rechazado</option>
-                      </select>
-                    </td>
-                    <td>
-                      <button onClick={() => handleUpdateState(informe.id, estado[informe.id])}>Actualizar</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p>No hay informes registrados.</p>
-          )}
-        </div>
-      )}
-
-      {/* Vista Docente Revisor */}
-      {userRole === 'docente' && (
-        <div>
-          <h3>Revisión de Informe Final</h3>
-          {informes.length > 0 ? (
-            <table>
-              <thead>
-                <tr>
-                  <th>ID Estudiante</th>
-                  <th>Informe Final</th>
-                  <th>Comentarios</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {informes.map((informe) => (
-                  <tr key={informe.id}>
-                    <td>{informe.id_estudiante}</td>
-                    <td><a href={`http://localhost:5000/uploads/${informe.final}`} target="_blank">Ver Informe Final</a></td>
-                    <td>
-                      <textarea
-                        value={docenteComentarios[informe.id] || ''}
-                        onChange={(e) => handleDocenteComentarioChange(informe.id, e)}
-                        placeholder="Escribe tus comentarios aquí"
-                      />
-                    </td>
-                    <td>
-                      <button onClick={() => handleUpdateState(informe.id, estado[informe.id])}>Actualizar Estado</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p>No hay informes registrados.</p>
-          )}
         </div>
       )}
     </div>
