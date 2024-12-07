@@ -447,6 +447,31 @@
     });
   });
 
+  ////COMISIÓN NNNNN---------------------------
+  // API para obtener los informes de avance y asesoría
+  app.get('/api/informes_avance_asesoria', (req, res) => {
+    const query = `
+      SELECT 
+        ia.id_estudiante, 
+        ia.id_asesor AS id_asesor_avance, 
+        ia.informe_avance, 
+        ias.informe_asesoria, 
+        ias.id_asesor AS id_asesor_asesoria
+      FROM informes_avance ia
+      JOIN informes_asesoria ias ON ia.id_estudiante = ias.id_estudiante
+      ORDER BY ia.id_estudiante;
+    `;
+  
+    db.query(query, (err, result) => {
+      if (err) {
+        console.error('Error al ejecutar la consulta:', err);
+        res.status(500).send('Error al obtener los informes de avance y asesoría');
+        return;
+      }
+      res.json(result);
+    });
+  });
+  
 
 
 

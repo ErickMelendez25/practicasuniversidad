@@ -16,6 +16,8 @@ function ProcesoRevisionInformes() {
   const [estudiantes, setEstudiantes] = useState([]);
   const [selectedAsesor, setSelectedAsesor] = useState('');
   const [selectedEstudiante, setSelectedEstudiante] = useState('');
+  const [informesAvance, setInformesAvance] = useState([]); // Inicializado como array vacío
+  const [informesAsesoria, setInformesAsesoria] = useState([]); // Inicializado como array vacío
 
   const user = JSON.parse(localStorage.getItem('usuario'));
 
@@ -70,6 +72,24 @@ function ProcesoRevisionInformes() {
           console.error('Error al obtener notificaciones', error);
         });
     }
+
+    // Obtener los informes de avance y de asesoria para la comisión
+    if (user && user.rol === 'comision') {
+      axios.get('http://localhost:5000/api/informes_avance_asesoria')
+        .then(response => {
+          console.log('Respuesta completa de la API:', response); // Muestra toda la respuesta de la API
+          console.log('Datos de informes_avance:', response.data.avance); // Verifica que la clave 'avance' exista
+          console.log('Datos de informes_asesoria:', response.data.asesoria); // Verifica que la clave 'asesoria' exista
+  
+          // Asegúrate de que las claves 'avance' y 'asesoria' sean arrays antes de asignarlas
+          setInformesAvance(response.data.avance || []); // Si 'avance' es undefined, usa un array vacío
+          setInformesAsesoria(response.data.asesoria || []); // Si 'asesoria' es undefined, usa un array vacío
+        })
+        .catch(error => {
+          console.error('Error al obtener informes de avance y asesoria', error);
+        });
+    }
+
   }, [user, estado]);
 
   const handleFileChange = (e) => {
@@ -135,44 +155,6 @@ function ProcesoRevisionInformes() {
     submitInforme(file, tipo, selectedAsesor, selectedEstudiante);
   };
 
-  const handleEstadoChange = (id, e) => {
-    setEstado(prevEstado => ({
-      ...prevEstado,
-      [id]: e.target.value,
-    }));
-  };
-
-  const handleComentarioChange = (id, e) => {
-    setComentarios(prevComentarios => ({
-      ...prevComentarios,
-      [id]: e.target.value,
-    }));
-  };
-
-  const handleDocenteComentarioChange = (id, e) => {
-    setDocenteComentarios(prevComentarios => ({
-      ...prevComentarios,
-      [id]: e.target.value,
-    }));
-  };
-
-  const handleUpdateState = (idInforme, estadoSeleccionado) => {
-    axios.put('http://localhost:5000/api/actualizar-estado', {
-      idInforme,
-      estado: estadoSeleccionado
-    })
-      .then(() => {
-        alert('Estado actualizado');
-        setEstado(prevEstado => ({
-          ...prevEstado,
-          [idInforme]: estadoSeleccionado,
-        }));
-      })
-      .catch((error) => {
-        alert('Error al actualizar estado');
-      });
-  };
-
   return (
     <div>
       {/* Vista Estudiante */}
@@ -229,6 +211,46 @@ function ProcesoRevisionInformes() {
             </div>
             <button type="submit">Enviar Informe de Asesoría</button>
           </form>
+        </div>
+      )}
+
+      {/* Vista de la comisión */}
+      {userRole === 'comision' && (
+        <div>
+          <h3>Informes de Avance y Asesoría</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>DNI Estudiante</th>
+                <th>Nombre Estudiante</th>
+                <th>DNI Asesor</th>
+                <th>Nombre Asesor</th>
+                <th>Informe de Avance</th>
+                <th>Informe de Asesoría</th>
+              </tr>
+            </thead>
+            <tbody>
+              {informesAvance && informesAvance.length > 0 ? informesAvance.map((avance) => {
+                const asesor = asesores.find(asesor => asesor.id === avance.id_asesor);
+                const estudiante = estudiantes.find(estudiante => estudiante.id === avance.id_estudiante);
+                const asesoria = informesAsesoria.find(asesoria => asesoria.id_estudiante === estudiante.id);
+                return (
+                  <tr key={avance.id}>
+                    <td>{estudiante.dni}</td>
+                    <td>{estudiante.nombre} {estudiante.apellido}</td>
+                    <td>{asesor.dni}</td>
+                    <td>{asesor.nombre} {asesor.apellido}</td>
+                    <td>{avance.informe_avance}</td>
+                    <td>{asesoria ? asesoria.informe_asesoria : 'No disponible'}</td>
+                  </tr>
+                );
+              }) : (
+                <tr>
+                  <td colSpan="6">No hay informes disponibles</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
