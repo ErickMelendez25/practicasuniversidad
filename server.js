@@ -67,55 +67,98 @@
 
   app.post('/login', (req, res) => {
     const { correo, password } = req.body;
-
+  
     if (!correo || !password) {
       return res.status(400).json({ message: 'Correo y contraseña son requeridos' });
     }
-
+  
+    // Verifica el usuario en la tabla usuarios
     db.query('SELECT * FROM usuarios WHERE correo = ?', [correo], (err, result) => {
       if (err) {
         console.error('Error al consultar el usuario:', err);
         return res.status(500).json({ message: 'Error en el servidor' });
       }
-
+  
       if (result.length === 0) {
         return res.status(404).json({ message: 'Usuario no encontrado' });
       }
-
+  
       const user = result[0];
-
+  
       bcrypt.compare(password, user.password, (err, isMatch) => {
         if (err) {
           console.error('Error al comparar las contraseñas:', err);
           return res.status(500).json({ message: 'Error en el servidor' });
         }
-
+  
         if (!isMatch) {
           return res.status(400).json({ message: 'Contraseña incorrecta' });
         }
-
-        db.query('SELECT id FROM estudiantes WHERE correo = ?', [user.correo], (err, studentResult) => {
-          if (err) {
-            console.error('Error al consultar el estudiante:', err);
-            return res.status(500).json({ message: 'Error en el servidor' });
-          }
-
-          const id_estudiante = studentResult.length > 0 ? studentResult[0].id : null;
-
-          const token = generateToken(user);
-          res.status(200).json({
-            message: 'Login exitoso',
-            token,
-            usuario: {
-              correo: user.correo,
-              rol: user.rol,
-              id_estudiante: id_estudiante  // Incluye id_estudiante aquí
+  
+        // Aquí buscamos si el usuario es asesor
+        
+  
+        if (user.rol === 'asesor') {
+          // Si el rol es 'asesor', buscamos el id_asesor en la tabla asesores
+          db.query('SELECT id FROM asesores WHERE correo = ?', [user.correo], (err, asesorResult) => {
+            if (err) {
+              console.error('Error al consultar el asesor:', err);
+              return res.status(500).json({ message: 'Error en el servidor' });
             }
+  
+            // Si se encuentra el asesor, asignamos el id_asesor
+            const id_asesor = asesorResult.length > 0 ? asesorResult[0].id : null;
+  
+            // Ahora buscamos el id del estudiante
+            db.query('SELECT id FROM estudiantes WHERE correo = ?', [user.correo], (err, studentResult) => {
+              if (err) {
+                console.error('Error al consultar el estudiante:', err);
+                return res.status(500).json({ message: 'Error en el servidor' });
+              }
+  
+              const id_estudiante = studentResult.length > 0 ? studentResult[0].id : null;
+  
+              // Generamos el token y enviamos la respuesta
+              const token = generateToken(user);
+              res.status(200).json({
+                message: 'Login exitoso',
+                token,
+                usuario: {
+                  correo: user.correo,
+                  rol: user.rol,
+                  id_estudiante: id_estudiante,  // Incluye id_estudiante aquí
+                  id_asesor: id_asesor  // Incluye id_asesor aquí
+                }
+              });
+            });
           });
-        });
+        } else {
+          // Si no es un asesor, solo obtenemos el id del estudiante
+          db.query('SELECT id FROM estudiantes WHERE correo = ?', [user.correo], (err, studentResult) => {
+            if (err) {
+              console.error('Error al consultar el estudiante:', err);
+              return res.status(500).json({ message: 'Error en el servidor' });
+            }
+  
+            const id_estudiante = studentResult.length > 0 ? studentResult[0].id : null;
+  
+            const token = generateToken(user);
+            res.status(200).json({
+              message: 'Login exitoso',
+              token,
+              usuario: {
+                correo: user.correo,
+                rol: user.rol,
+                id_estudiante: id_estudiante,  // Incluye id_estudiante aquí
+                id_asesor: null  // En caso de que no sea un asesor
+              }
+            });
+          });
+        }
       });
     });
   });
+  
 
   // Ruta para registrar un usuario (con contraseña cifrada)
   app.post('/register', (req, res) => {
@@ -379,55 +422,49 @@
   });
 
   app.post('/api/informes/asesoria', upload.single('asesoria'), (req, res) => {
-    // Extraemos los valores del cuerpo de la solicitud
-    const { id_estudiante, id_asesor } = req.body;
-    const fileName = req.file ? req.file.filename : null;  // Obtener el nombre del archivo
+    const { id_asesor, id_estudiante } = req.body;
+    const informe_asesoria = req.file ? req.file.filename : null;
   
-    // Verificar que todos los campos requeridos estén presentes
-    if (!id_estudiante || !id_asesor || !fileName) {
-      return res.status(400).json({ error: 'Todos los campos son necesarios.' });
+    if (!id_estudiante || !id_asesor || !informe_asesoria) {
+      return res.status(400).json({ error: 'Informe de asesoría, estudiante y asesor requeridos.' });
     }
   
-    // Consulta SQL sin incluir el campo 'id' (autoincremental)
-    const query = `INSERT INTO informes_asesoria (id_estudiante, informe_asesoria, estado_informe_asesoria, id_asesor, fecha_creacion)
-                   VALUES (?, ?, ?, ?, NOW())`;
-  
-    // Proporcionamos los valores de la consulta
-    const values = [id_estudiante, fileName, 'Pendiente', id_asesor];
-  
-    // Ejecutar la consulta
-    db.query(query, values, (err, result) => {
+    const query = `
+      INSERT INTO informes_asesoria (id_estudiante, id_asesor, informe_asesoria)
+      VALUES (?, ?, ? )
+    `;
+    db.query(query, [id_estudiante, id_asesor, informe_asesoria], (err, result) => {
       if (err) {
         console.error('Error al guardar el informe de asesoría:', err);
-        return res.status(500).json({ error: 'Error al guardar el informe de asesoría' });
+        return res.status(500).json({ error: 'Error al guardar el informe de asesoría.' });
       }
-      res.status(200).json({ message: 'Informe de asesoría guardado correctamente' });
+      res.status(200).json({ message: 'Informe de asesoría enviado correctamente.' });
     });
   });
   
-  
-
-
-
-
-
   // Endpoint para recibir el informe de avance
   app.post('/api/informes/avance', upload.single('avance'), (req, res) => {
     const { id_estudiante, id_asesor } = req.body;
-    const informe_avance = req.file ? req.file.filename : null; // Guardar el nombre del archivo
+    const informe_avance = req.file ? req.file.filename : null;
 
     if (!id_estudiante || !id_asesor || !informe_avance) {
-      return res.status(400).json({ error: 'Todos los campos son necesarios.' });
+      return res.status(400).json({ error: 'Informe de avance, estudiante y asesor requeridos.' });
     }
 
-    const query = 'INSERT INTO informes_avance (id_estudiante, id_asesor, informe_avance) VALUES (?, ?, ?)';
+    const query = `
+      INSERT INTO informes_avance (id_estudiante, id_asesor, informe_avance)
+      VALUES (?, ?, ?)
+    `;
     db.query(query, [id_estudiante, id_asesor, informe_avance], (err, result) => {
       if (err) {
+        console.error('Error al guardar el informe de avance:', err);
         return res.status(500).json({ error: 'Error al guardar el informe de avance.' });
       }
       res.status(200).json({ message: 'Informe de avance enviado correctamente.' });
     });
   });
+
+
 
 
   // Endpoint para obtener la lista de asesores
@@ -447,31 +484,6 @@
     });
   });
 
-  ////COMISIÓN NNNNN---------------------------
-  // API para obtener los informes de avance y asesoría
-  app.get('/api/informes_avance_asesoria', (req, res) => {
-    const query = `
-      SELECT 
-        ia.id_estudiante, 
-        ia.id_asesor AS id_asesor_avance, 
-        ia.informe_avance, 
-        ias.informe_asesoria, 
-        ias.id_asesor AS id_asesor_asesoria
-      FROM informes_avance ia
-      JOIN informes_asesoria ias ON ia.id_estudiante = ias.id_estudiante
-      ORDER BY ia.id_estudiante;
-    `;
-  
-    db.query(query, (err, result) => {
-      if (err) {
-        console.error('Error al ejecutar la consulta:', err);
-        res.status(500).send('Error al obtener los informes de avance y asesoría');
-        return;
-      }
-      res.json(result);
-    });
-  });
-  
 
 
 

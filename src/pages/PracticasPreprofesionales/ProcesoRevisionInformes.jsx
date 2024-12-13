@@ -16,8 +16,6 @@ function ProcesoRevisionInformes() {
   const [estudiantes, setEstudiantes] = useState([]);
   const [selectedAsesor, setSelectedAsesor] = useState('');
   const [selectedEstudiante, setSelectedEstudiante] = useState('');
-  const [informesAvance, setInformesAvance] = useState([]); // Inicializado como array vacío
-  const [informesAsesoria, setInformesAsesoria] = useState([]); // Inicializado como array vacío
 
   const user = JSON.parse(localStorage.getItem('usuario'));
 
@@ -72,24 +70,6 @@ function ProcesoRevisionInformes() {
           console.error('Error al obtener notificaciones', error);
         });
     }
-
-    // Obtener los informes de avance y de asesoria para la comisión
-    if (user && user.rol === 'comision') {
-      axios.get('http://localhost:5000/api/informes_avance_asesoria')
-        .then(response => {
-          console.log('Respuesta completa de la API:', response); // Muestra toda la respuesta de la API
-          console.log('Datos de informes_avance:', response.data.avance); // Verifica que la clave 'avance' exista
-          console.log('Datos de informes_asesoria:', response.data.asesoria); // Verifica que la clave 'asesoria' exista
-  
-          // Asegúrate de que las claves 'avance' y 'asesoria' sean arrays antes de asignarlas
-          setInformesAvance(response.data.avance || []); // Si 'avance' es undefined, usa un array vacío
-          setInformesAsesoria(response.data.asesoria || []); // Si 'asesoria' es undefined, usa un array vacío
-        })
-        .catch(error => {
-          console.error('Error al obtener informes de avance y asesoria', error);
-        });
-    }
-
   }, [user, estado]);
 
   const handleFileChange = (e) => {
@@ -104,55 +84,76 @@ function ProcesoRevisionInformes() {
     }
   };
 
-  const submitInforme = async (file, tipo, selectedAsesor, selectedEstudiante) => {
+  const submitInformeAvance = async (file, selectedAsesor) => {
     const formData = new FormData();
-    formData.append(tipo, file);
-    
-    if (selectedAsesor) formData.append('id_asesor', selectedAsesor);
-    if (selectedEstudiante) formData.append('id_estudiante', selectedEstudiante);
+    formData.append('avance', file);
+
+    // Enviar informe de avance con el id_estudiante del estudiante logueado y el id_asesor seleccionado
+    if (userRole === 'estudiante') {
+      formData.append('id_estudiante', user.id_estudiante); // ID del estudiante logueado
+      if (selectedAsesor) formData.append('id_asesor', selectedAsesor); // ID del asesor seleccionado
+    }
 
     try {
-      const response = await axios.post(`http://localhost:5000/api/informes/${tipo}`, formData, {
+      const response = await axios.post('http://localhost:5000/api/informes/avance', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       if (response.status === 200) {
-        alert(`${tipo} enviado exitosamente`);
+        alert('Informe de avance enviado exitosamente');
       } else {
         alert('Error en el servidor, no se pudo procesar el informe');
       }
     } catch (error) {
-      console.error(`Error al enviar el informe de ${tipo}:`, error.response || error.message);
+      console.error('Error al enviar el informe de avance:', error.response || error.message);
       alert('Error al enviar el informe');
     }
   };
 
-  const handleSubmit = async (e, tipo) => {
-    e.preventDefault();
-    let file = null;
+  const submitInformeAsesoria = async (file, selectedEstudiante) => {
+    const formData = new FormData();
+    formData.append('asesoria', file);
 
-    // Validación y asignación del archivo según el tipo
-    if (tipo === 'avance' && !avanceFile) {
+    // Verificar si el usuario es un asesor y si su id_asesor está disponible
+    if (userRole === 'asesor') {
+      formData.append('id_asesor', user.id_asesor); // ID del asesor logueado
+      if (selectedEstudiante) formData.append('id_estudiante', selectedEstudiante); // ID del estudiante seleccionado
+    }
+
+    try {
+      const response = await axios.post('http://localhost:5000/api/informes/asesoria', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (response.status === 200) {
+        alert('Informe de asesoría enviado exitosamente');
+      } else {
+        alert('Error en el servidor, no se pudo procesar el informe');
+      }
+    } catch (error) {
+      console.error('Error al enviar el informe de asesoría:', error.response || error.message);
+      alert('Error al enviar el informe');
+    }
+  };
+
+  const handleSubmitAvance = async (e) => {
+    e.preventDefault();
+
+    if (!avanceFile) {
       alert('Debe seleccionar un informe de avance.');
-      return;
-    } else if (tipo === 'asesoria' && (!asesoriaFile || !selectedEstudiante || !selectedAsesor)) {
-      alert('Informe de asesoría, estudiante y asesor requeridos');
-      return;
-    } else if (tipo === 'ampliacion' && !ampliacionFile) {
-      alert('Solicitud de ampliación de plazo requerida');
-      return;
-    } else if (tipo === 'final' && !finalFile) {
-      alert('Informe final requerido');
       return;
     }
 
-    // Asignar el archivo al tipo correspondiente
-    if (tipo === 'avance') file = avanceFile;
-    if (tipo === 'asesoria') file = asesoriaFile;
-    if (tipo === 'ampliacion') file = ampliacionFile;
-    if (tipo === 'final') file = finalFile;
+    submitInformeAvance(avanceFile, selectedAsesor);
+  };
 
-    // Llamar a la función para enviar el archivo
-    submitInforme(file, tipo, selectedAsesor, selectedEstudiante);
+  const handleSubmitAsesoria = async (e) => {
+    e.preventDefault();
+
+    if (!asesoriaFile || !selectedEstudiante) {
+      alert('Debe seleccionar un informe de asesoría y un estudiante.');
+      return;
+    }
+
+    submitInformeAsesoria(asesoriaFile, selectedEstudiante);
   };
 
   return (
@@ -161,7 +162,7 @@ function ProcesoRevisionInformes() {
       {userRole === 'estudiante' && (
         <div>
           <h3>Informe de Avance</h3>
-          <form onSubmit={(e) => handleSubmit(e, 'avance')}>
+          <form onSubmit={handleSubmitAvance}>
             <label>Informe de Avance:</label>
             <input type="file" name="avance" onChange={handleFileChange} required />
             <div>
@@ -184,7 +185,7 @@ function ProcesoRevisionInformes() {
       {userRole === 'asesor' && (
         <div>
           <h3>Informe de Asesoría</h3>
-          <form onSubmit={(e) => handleSubmit(e, 'asesoria')}>
+          <form onSubmit={handleSubmitAsesoria}>
             <label>Informe de Asesoría:</label>
             <input type="file" name="asesoria" onChange={handleFileChange} required />
             <div>
@@ -198,59 +199,8 @@ function ProcesoRevisionInformes() {
                 ))}
               </select>
             </div>
-            <div>
-              <label>Seleccionar Asesor:</label>
-              <select value={selectedAsesor} onChange={(e) => setSelectedAsesor(e.target.value)} required>
-                <option value="">Seleccionar Asesor</option>
-                {asesores.map((asesor) => (
-                  <option key={asesor.id} value={asesor.id}>
-                    {asesor.dni} - {asesor.nombre} {asesor.apellido}
-                  </option>
-                ))}
-              </select>
-            </div>
             <button type="submit">Enviar Informe de Asesoría</button>
           </form>
-        </div>
-      )}
-
-      {/* Vista de la comisión */}
-      {userRole === 'comision' && (
-        <div>
-          <h3>Informes de Avance y Asesoría</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>DNI Estudiante</th>
-                <th>Nombre Estudiante</th>
-                <th>DNI Asesor</th>
-                <th>Nombre Asesor</th>
-                <th>Informe de Avance</th>
-                <th>Informe de Asesoría</th>
-              </tr>
-            </thead>
-            <tbody>
-              {informesAvance && informesAvance.length > 0 ? informesAvance.map((avance) => {
-                const asesor = asesores.find(asesor => asesor.id === avance.id_asesor);
-                const estudiante = estudiantes.find(estudiante => estudiante.id === avance.id_estudiante);
-                const asesoria = informesAsesoria.find(asesoria => asesoria.id_estudiante === estudiante.id);
-                return (
-                  <tr key={avance.id}>
-                    <td>{estudiante.dni}</td>
-                    <td>{estudiante.nombre} {estudiante.apellido}</td>
-                    <td>{asesor.dni}</td>
-                    <td>{asesor.nombre} {asesor.apellido}</td>
-                    <td>{avance.informe_avance}</td>
-                    <td>{asesoria ? asesoria.informe_asesoria : 'No disponible'}</td>
-                  </tr>
-                );
-              }) : (
-                <tr>
-                  <td colSpan="6">No hay informes disponibles</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
         </div>
       )}
     </div>
