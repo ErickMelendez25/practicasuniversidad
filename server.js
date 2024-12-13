@@ -401,6 +401,52 @@
 
   //PROCESO 2 REVISON DE INFORMES
 
+  //COMISION---------------------------------------------------------------------------------------
+  // Obtener informes relacionados de asesoria y avance para la comisión
+  app.get('/api/informes_comision', (req, res) => {
+    // Consulta SQL para obtener los informes de asesoría y avance más recientes relacionados
+    const query = `
+      SELECT 
+        a.id_estudiante,
+        a.id_asesor,
+        a.informe_asesoria,
+        a.fecha_creacion AS fecha_creacion_asesoria,
+        a.estado_informe_asesoria,
+        b.informe_avance,
+        b.fecha_creacion AS fecha_creacion_avance,
+        b.estado_revision_avance
+      FROM 
+        (SELECT * 
+         FROM informes_asesoria 
+         WHERE (id_estudiante, id_asesor, fecha_creacion) IN 
+               (SELECT id_estudiante, id_asesor, MAX(fecha_creacion)
+                FROM informes_asesoria
+                GROUP BY id_estudiante, id_asesor)) a
+      JOIN 
+        (SELECT * 
+         FROM informes_avance 
+         WHERE (id_estudiante, id_asesor, fecha_creacion) IN 
+               (SELECT id_estudiante, id_asesor, MAX(fecha_creacion)
+                FROM informes_avance
+                GROUP BY id_estudiante, id_asesor)) b
+      ON a.id_estudiante = b.id_estudiante 
+      AND a.id_asesor = b.id_asesor;
+    `;
+  
+    // Ejecutar la consulta en la base de datos
+    db.query(query, (err, results) => {
+      if (err) {
+        // Si hay un error en la consulta, respondemos con un error 500
+        return res.status(500).json({ error: 'Error al obtener los informes de la comisión.' });
+      }
+  
+      // Si la consulta fue exitosa, respondemos con los resultados en formato JSON
+      res.json(results);
+    });
+  });
+  
+
+
   //ASESORRRRRR:
 
   // Endpoint para obtener los estudiantes con sus informes de asesoría

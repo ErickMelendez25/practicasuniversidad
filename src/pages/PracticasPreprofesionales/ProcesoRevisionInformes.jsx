@@ -16,6 +16,7 @@ function ProcesoRevisionInformes() {
   const [estudiantes, setEstudiantes] = useState([]);
   const [selectedAsesor, setSelectedAsesor] = useState('');
   const [selectedEstudiante, setSelectedEstudiante] = useState('');
+  const [informesComision, setInformesComision] = useState([]);  // Para los informes de la comisión
 
   const user = JSON.parse(localStorage.getItem('usuario'));
 
@@ -60,6 +61,20 @@ function ProcesoRevisionInformes() {
       .catch(error => {
         console.error('Error al obtener los estudiantes', error);
       });
+
+    // Si el usuario es comision, obtener los informes relacionados entre asesoria y avance
+    if (user && user.rol === 'comision') {
+      
+      // Usar la ruta correcta:
+      axios.get('http://localhost:5000/api/informes_comision')
+
+        .then(response => {
+          setInformesComision(response.data);
+        })
+        .catch(error => {
+          console.error('Error al obtener los informes de la comisión:', error);
+        });
+    }
 
     if (user && user.rol === 'estudiante') {
       axios.get(`http://localhost:5000/api/notificaciones?id_estudiante=${user.id_estudiante}`)
@@ -201,6 +216,41 @@ function ProcesoRevisionInformes() {
             </div>
             <button type="submit">Enviar Informe de Asesoría</button>
           </form>
+        </div>
+      )}
+
+      {/* Vista Comisión */}
+      {userRole === 'comision' && (
+        <div>
+          <h3>Informes de Avance y Asesoría</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Estudiante</th>
+                <th>Asesor</th>
+                <th>Informe de Asesoría</th>
+                <th>Fecha de Creación (Asesoría)</th>
+                <th>Estado de Informe Asesoría</th>
+                <th>Informe de Avance</th>
+                <th>Fecha de Creación (Avance)</th>
+                <th>Estado de Informe de Avance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {informesComision.map((informe) => (
+                <tr key={informe.id_estudiante}>
+                  <td>{informe.id_estudiante}</td>
+                  <td>{informe.id_asesor}</td>
+                  <td>{informe.informe_asesoria}</td>
+                  <td>{informe.fecha_creacion_asesoria}</td>
+                  <td>{informe.estado_informe_asesoria}</td>
+                  <td>{informe.informe_avance}</td>
+                  <td>{informe.fecha_creacion_avance}</td>
+                  <td>{informe.estado_revision_avance}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
