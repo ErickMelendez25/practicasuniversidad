@@ -64,10 +64,7 @@ function ProcesoRevisionInformes() {
 
     // Si el usuario es comision, obtener los informes relacionados entre asesoria y avance
     if (user && user.rol === 'comision') {
-      
-      // Usar la ruta correcta:
       axios.get('http://localhost:5000/api/informes_comision')
-
         .then(response => {
           setInformesComision(response.data);
         })
@@ -171,6 +168,35 @@ function ProcesoRevisionInformes() {
     submitInformeAsesoria(asesoriaFile, selectedEstudiante);
   };
 
+  const handleUpdateState = async (idEstudiante, estadoAsesoria, estadoAvance, idAsesor) => {
+    // Verificar que los valores sean correctos
+    console.log("Datos enviados:", { idEstudiante, estadoAsesoria, estadoAvance, idAsesor });
+
+    // Comprobar si los estados de los informes y el id_asesor están presentes
+    if (!estadoAsesoria || !estadoAvance || !idAsesor) {
+      alert('Faltan datos necesarios para actualizar el estado');
+      return;
+    }
+
+    // Enviar la solicitud PUT para actualizar los estados de los informes
+    try {
+      const response = await axios.put('http://localhost:5000/api/actualizacion_informe', {
+        id_estudiante: idEstudiante,
+        estado_informe_asesoria: estadoAsesoria,
+        estado_informe_avance: estadoAvance,
+        id_asesor: idAsesor
+      });
+
+      console.log('Informe actualizado:', response.data);
+
+      // Mostrar un mensaje de éxito
+      alert('Estado actualizado y notificación enviada');
+    } catch (error) {
+      console.error('Error al actualizar el estado:', error.response || error.message);
+      alert(`Hubo un error al actualizar el estado: ${error.response ? error.response.data.error : error.message}`);
+    }
+  };
+
   return (
     <div>
       {/* Vista Estudiante */}
@@ -222,31 +248,75 @@ function ProcesoRevisionInformes() {
       {/* Vista Comisión */}
       {userRole === 'comision' && (
         <div>
-          <h3>Informes de Avance y Asesoría</h3>
-          <table>
+          <h3>Revisión de Informes</h3>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th>Estudiante</th>
-                <th>Asesor</th>
-                <th>Informe de Asesoría</th>
-                <th>Fecha de Creación (Asesoría)</th>
-                <th>Estado de Informe Asesoría</th>
-                <th>Informe de Avance</th>
-                <th>Fecha de Creación (Avance)</th>
-                <th>Estado de Informe de Avance</th>
+                <th style={{ textAlign: 'left', padding: '8px', border: '1px solid #ddd' }}>ID Estudiante</th>
+                <th style={{ textAlign: 'left', padding: '8px', border: '1px solid #ddd' }}>ID Asesor</th>
+                <th style={{ textAlign: 'left', padding: '8px', border: '1px solid #ddd' }}>Estado Asesoría</th>
+                <th style={{ textAlign: 'left', padding: '8px', border: '1px solid #ddd' }}>Estado Avance</th>
+                <th style={{ textAlign: 'left', padding: '8px', border: '1px solid #ddd' }}>Informe Asesoría</th>
+                <th style={{ textAlign: 'left', padding: '8px', border: '1px solid #ddd' }}>Informe Avance</th>
+                <th style={{ textAlign: 'left', padding: '8px', border: '1px solid #ddd' }}>Acción</th>
               </tr>
             </thead>
             <tbody>
               {informesComision.map((informe) => (
                 <tr key={informe.id_estudiante}>
-                  <td>{informe.id_estudiante}</td>
-                  <td>{informe.id_asesor}</td>
-                  <td>{informe.informe_asesoria}</td>
-                  <td>{informe.fecha_creacion_asesoria}</td>
-                  <td>{informe.estado_informe_asesoria}</td>
-                  <td>{informe.informe_avance}</td>
-                  <td>{informe.fecha_creacion_avance}</td>
-                  <td>{informe.estado_revision_avance}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>{informe.id_estudiante}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>{informe.id_asesor}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                    {/* Aquí se coloca el select para el estado de la asesoria */}
+                    <select
+                      value={informe.estado_informe_asesoria}
+                      onChange={(e) =>
+                        handleUpdateState(informe.id_estudiante, e.target.value, informe.estado_revision_avance, informe.id_asesor)
+                      }
+                      style={{ width: '100%', padding: '5px' }}
+                    >
+                      <option value="Aprobado">Aprobado</option>
+                      <option value="Rechazado">Rechazado</option>
+                      <option value="Pendiente">Pendiente</option>
+                    </select>
+                  </td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                    {/* Aquí se coloca el select para el estado de avance */}
+                    <select
+                      value={informe.estado_revision_avance}
+                      onChange={(e) =>
+                        handleUpdateState(informe.id_estudiante, informe.estado_informe_asesoria, e.target.value, informe.id_asesor)
+                      }
+                      style={{ width: '100%', padding: '5px' }}
+                    >
+                      <option value="Aprobado">Aprobado</option>
+                      <option value="Rechazado">Rechazado</option>
+                      <option value="Pendiente">Pendiente</option>
+                    </select>
+                  </td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                    {informe.informe_asesoria && (
+                      <a href={`http://localhost:5000/api/descargar/${informe.informe_asesoria}`} target="_blank" rel="noopener noreferrer">
+                        Ver Informe Asesoría
+                      </a>
+                    )}
+                  </td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                    {informe.informe_avance && (
+                      <a href={`http://localhost:5000/api/descargar/${informe.informe_avance}`} target="_blank" rel="noopener noreferrer">
+                        Ver Informe Avance
+                      </a>
+                    )}
+                  </td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                    <button
+                      onClick={() =>
+                        handleUpdateState(informe.id_estudiante, informe.estado_informe_asesoria, informe.estado_revision_avance, informe.id_asesor)
+                      }
+                    >
+                      Actualizar
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

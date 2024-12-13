@@ -444,6 +444,164 @@
       res.json(results);
     });
   });
+
+  // Cambia la ruta de actualización de estado a actualización de informe
+
+
+  app.put('/api/actualizar_informe', (req, res) => {
+    const { id_estudiante, id_asesor, estado_informe_asesoria, estado_revision_avance } = req.body;
+
+    // Comenzamos por actualizar la tabla de informes_asesoria
+    let query = `
+        UPDATE informes_asesoria
+        SET estado_informe_asesoria = ?
+        WHERE id_estudiante = ? AND id_asesor = ?;
+    `;
+
+    db.query(query, [estado_informe_asesoria, id_estudiante, id_asesor], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error al actualizar el informe de asesoría.' });
+        }
+
+        // Luego actualizamos la tabla de informes_avance
+        query = `
+            UPDATE informes_avance
+            SET estado_revision_avance = ?
+            WHERE id_estudiante = ? AND id_asesor = ?;
+        `;
+
+        db.query(query, [estado_revision_avance, id_estudiante, id_asesor], (err, result) => {
+            if (err) {
+                return res.status(500).json({ error: 'Error al actualizar el informe de avance.' });
+            }
+
+            res.status(200).json({ message: 'Informes actualizados correctamente.' });
+        });
+    });
+});
+
+
+// Ruta para servir archivos estáticos (por ejemplo, archivos subidos)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Ruta para descargar archivos
+app.get('/api/descargar/:filename', (req, res) => {
+  const { filename } = req.params;
+
+  // Especifica la carpeta donde se encuentran los archivos (por ejemplo, 'uploads')
+  const filePath = path.join(__dirname, 'uploads', filename);
+
+  // Verificar si el archivo existe
+  fs.access(filePath, fs.constants.F_OK, (err) => {
+    if (err) {
+      return res.status(404).send('Archivo no encontrado');
+    }
+
+    // Si el archivo existe, enviamos el archivo al cliente
+    res.download(filePath, filename, (err) => {
+      if (err) {
+        console.error('Error al enviar el archivo:', err);
+        return res.status(500).send('Error al descargar el archivo');
+      }
+    });
+  });
+});
+
+
+
+
+// Se asume que tienes una conexión de base de datos con algo como `db` (por ejemplo, con `mysql2` o `sequelize`)
+
+
+
+app.put('/api/actualizacion_informe', (req, res) => {
+  const { id_estudiante, estado_informe_asesoria, estado_informe_avance, id_asesor } = req.body;
+
+  // Verificar que todos los datos necesarios estén presentes
+  console.log("Datos recibidos en el backend:", req.body);  // Verifica lo que recibes en el backend
+
+  if (!id_estudiante || !estado_informe_asesoria || !estado_informe_avance || !id_asesor) {
+    return res.status(400).json({ error: 'Faltan datos necesarios (id_estudiante, estado_informe_asesoria, estado_informe_avance, id_asesor)' });
+  }
+
+  // Usamos una transacción para actualizar ambos registros de forma segura
+  const sql1 = `
+    UPDATE informes_asesoria
+    SET estado_informe_asesoria = ?, id_asesor = ?
+    WHERE id_estudiante = ?
+  `;
+  const sql2 = `
+    UPDATE informes_avance
+    SET estado_revision_avance = ?, id_asesor = ?
+    WHERE id_estudiante = ?
+  `;
+
+  // Comenzamos una transacción para asegurar que ambos registros se actualicen correctamente
+  db.beginTransaction(function(err) {
+    if (err) {
+      return res.status(500).json({ error: 'Error en la transacción' });
+    }
+
+    // Actualización del estado del informe de asesoría
+    db.query(sql1, [estado_informe_asesoria, id_asesor, id_estudiante], function (err1, result1) {
+      if (err1) {
+        return db.rollback(function() {
+          return res.status(500).json({ error: 'Error al actualizar informe de asesoría' });
+        });
+      }
+
+      // Actualización del estado del informe de avance
+      db.query(sql2, [estado_informe_avance, id_asesor, id_estudiante], function (err2, result2) {
+        if (err2) {
+          return db.rollback(function() {
+            return res.status(500).json({ error: 'Error al actualizar informe de avance' });
+          });
+        }
+
+        // Si ambos updates fueron exitosos, commit la transacción
+        db.commit(function(err3) {
+          if (err3) {
+            return db.rollback(function() {
+              return res.status(500).json({ error: 'Error en el commit de la transacción' });
+            });
+          }
+          res.status(200).json({ mensaje: 'Informe actualizado correctamente' });
+        });
+      });
+    });
+  });
+});
+
+
+
+
+
+
+  // Ruta para enviar notificaciones
+  app.post('/api/notificar', (req, res) => {
+    const { id_estudiante, mensaje } = req.body;
+
+    if (!id_estudiante || !mensaje) {
+      return res.status(400).json({ error: 'Faltan datos necesarios (id_estudiante o mensaje)' });
+    }
+
+    // Buscar el estudiante por id
+    const estudiante = estudiantes.find(est => est.id_estudiante === id_estudiante);
+    
+    if (!estudiante) {
+      return res.status(404).json({ error: 'Estudiante no encontrado' });
+    }
+
+    // Aquí, puedes integrar la lógica para enviar la notificación.
+    // Por ejemplo, enviar un correo electrónico al estudiante usando nodemailer
+    // o guardarlo en la base de datos si estás implementando notificaciones dentro de tu sistema.
+
+    // Para esta demostración, simplemente vamos a devolver un mensaje.
+    console.log(`Notificación enviada a ${estudiante.nombre} (${estudiante.correo}): ${mensaje}`);
+
+    // Responder con un mensaje de éxito
+    return res.status(200).json({ mensaje: 'Notificación enviada correctamente', estudiante: estudiante.nombre });
+  });
   
 
 
