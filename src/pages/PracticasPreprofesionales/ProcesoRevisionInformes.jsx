@@ -18,6 +18,11 @@ function ProcesoRevisionInformes() {
   const [selectedEstudiante, setSelectedEstudiante] = useState('');
   const [informesComision, setInformesComision] = useState([]);  // Para los informes de la comisión
 
+  const [estadoAsesoria, setEstadoAsesoria] = useState('');
+  const [estadoAvance, setEstadoAvance] = useState('');
+  const [idEstudiante, setIdEstudiante] = useState('');
+  const [idAsesor, setIdAsesor] = useState('');
+
   const user = JSON.parse(localStorage.getItem('usuario'));
 
   useEffect(() => {
@@ -182,57 +187,58 @@ function ProcesoRevisionInformes() {
   };
 
   const handleUpdateState = async (idEstudiante, estadoAsesoria, estadoAvance, idAsesor) => {
-  if (!estadoAsesoria || !estadoAvance || !idAsesor) {
-    alert('Faltan datos necesarios para actualizar el estado');
-    return;
-  }
-
-  // Enviar la solicitud PUT para actualizar los estados de los informes
-  try {
-    const response = await axios.put('http://localhost:5000/api/actualizacion_informe', {
-      id_estudiante: idEstudiante,
-      estado_informe_asesoria: estadoAsesoria,
-      estado_informe_avance: estadoAvance,
-      id_asesor: idAsesor
-    });
-
-    // Notificar a los estudiantes y asesores
-    const notificationData = {
-      id_estudiante: idEstudiante,
-      estado_asesoria: estadoAsesoria,
-      estado_avance: estadoAvance,
-      id_asesor: idAsesor
-    };
-
-    await axios.post('http://localhost:5000/api/notificar', notificationData);
-
-    // Mostrar mensaje de éxito y actualizar notificaciones
-    alert('Estado actualizado y notificación enviada');
-
-    // Actualizar las notificaciones para el estudiante
-    if (userRole === 'estudiante' ) {
-      // Obtener las notificaciones actualizadas
-      const response = await axios.get(`http://localhost:5000/api/notificaciones_informes?id_estudiante=${user.id_estudiante}`);
-      setNotificaciones(response.data);  // Actualizar las notificaciones
+    if (!estadoAsesoria || !estadoAvance || !idAsesor) {
+      alert('Faltan datos necesarios para actualizar el estado');
+      return;
     }
-
-    await axios.post('http://localhost:5000/api/notificar', notificationData);
-
-    // Mostrar mensaje de éxito y actualizar notificaciones
-    alert('Estado actualizado y notificación enviada');
-
-    // Actualizar las notificaciones para el estudiante
-    if (userRole === 'asesor' ) {
-      // Obtener las notificaciones actualizadas
-      const response = await axios.get(`http://localhost:5000/api/notificaciones_informes?id_estudiante=${user.id_estudiante}`);
-      setNotificaciones(response.data);  // Actualizar las notificaciones
+  
+    // Enviar la solicitud PUT para actualizar los estados de los informes
+    try {
+      const response = await axios.put('http://localhost:5000/api/actualizacion_informe', {
+        id_estudiante: idEstudiante,
+        estado_informe_asesoria: estadoAsesoria,
+        estado_informe_avance: estadoAvance,
+        id_asesor: idAsesor
+      });
+  
+      // Notificar a los estudiantes y asesores
+      const notificationData = {
+        id_estudiante: idEstudiante,
+        estado_asesoria: estadoAsesoria,
+        estado_avance: estadoAvance,
+        id_asesor: idAsesor
+      };
+  
+      await axios.post('http://localhost:5000/api/notificar', notificationData);
+  
+      // Mostrar mensaje de éxito y actualizar notificaciones
+      alert('Estado actualizado y notificación enviada');
+  
+      // Actualizar las notificaciones para el estudiante
+      if (userRole === 'estudiante') {
+        // Obtener las notificaciones actualizadas
+        const response = await axios.get(`http://localhost:5000/api/notificaciones_informes?id_estudiante=${user.id_estudiante}`);
+        setNotificaciones(response.data);  // Actualizar las notificaciones
+      }
+  
+      // Actualizar el estado de los informes en la interfaz
+      setEstado(prevEstado => {
+        const updatedEstado = { ...prevEstado };
+        updatedEstado[idEstudiante] = {
+          ...updatedEstado[idEstudiante],
+          estado_informe_asesoria: estadoAsesoria,
+          estado_informe_avance: estadoAvance
+        };
+        return updatedEstado;
+      });
+  
+    } catch (error) {
+      console.error('Error al actualizar el estado:', error);
+      alert(`Hubo un error al actualizar el estado: ${error.response ? error.response.data.error : error.message}`);
     }
+  };
+  
 
-  } catch (error) {
-    console.error('Error al actualizar el estado:', error);
-    alert(`Hubo un error al actualizar el estado: ${error.response ? error.response.data.error : error.message}`);
-  }
-};
 
 
 
@@ -333,11 +339,8 @@ function ProcesoRevisionInformes() {
                   <td style={{ padding: '8px', border: '1px solid #ddd' }}>{informe.id_asesor}</td>
                   <td style={{ padding: '8px', border: '1px solid #ddd' }}>
                     <select
-                      value={informe.estado_informe_asesoria}
-                      onChange={(e) =>
-                        handleUpdateState(informe.id_estudiante, e.target.value, informe.estado_revision_avance, informe.id_asesor)
-                      }
-                      style={{ width: '100%', padding: '5px' }}
+                      value={estadoAsesoria || informe.estado_informe_asesoria}  // Asegúrate de que el valor esté sincronizado
+                      onChange={(e) => setEstadoAsesoria(e.target.value)} // Actualiza el estado de asesoría
                     >
                       <option value="Aprobado">Aprobado</option>
                       <option value="Rechazado">Rechazado</option>
@@ -346,11 +349,8 @@ function ProcesoRevisionInformes() {
                   </td>
                   <td style={{ padding: '8px', border: '1px solid #ddd' }}>
                     <select
-                      value={informe.estado_revision_avance}
-                      onChange={(e) =>
-                        handleUpdateState(informe.id_estudiante, informe.estado_informe_asesoria, e.target.value, informe.id_asesor)
-                      }
-                      style={{ width: '100%', padding: '5px' }}
+                      value={estadoAvance || informe.estado_revision_avance}  // Asegúrate de que el valor esté sincronizado
+                      onChange={(e) => setEstadoAvance(e.target.value)} // Actualiza el estado de avance
                     >
                       <option value="Aprobado">Aprobado</option>
                       <option value="Rechazado">Rechazado</option>
@@ -374,7 +374,7 @@ function ProcesoRevisionInformes() {
                   <td style={{ padding: '8px', border: '1px solid #ddd' }}>
                     <button
                       onClick={() =>
-                        handleUpdateState(informe.id_estudiante, informe.estado_informe_asesoria, informe.estado_revision_avance, informe.id_asesor)
+                        handleUpdateState(informe.id_estudiante, estadoAsesoria, estadoAvance, informe.id_asesor)
                       }
                     >
                       Actualizar
