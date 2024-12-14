@@ -400,6 +400,47 @@
 
 
   //PROCESO 2 REVISON DE INFORMES
+  //ESTUDAINTE------------------------------------------------------------------------------------------
+
+  // Ruta para obtener las notificaciones de los informes
+  app.get('/api/notificaciones_informes', (req, res) => {
+    const { id_estudiante } = req.query; // Obtener el id_estudiante desde los parámetros de consulta
+
+    // Validación para asegurarse de que se pase el id_estudiante
+    if (!id_estudiante) {
+      return res.status(400).json({ error: 'El ID del estudiante es necesario' });
+    }
+
+    // Consulta para obtener las notificaciones de la tabla notificaciones_informes
+    const query = `
+      SELECT mensaje, leida, fecha
+      FROM notificaciones_informes
+      WHERE id_estudiante = ?
+      ORDER BY fecha DESC
+    `;
+
+    // Ejecutar la consulta a la base de datos
+    db.query(query, [id_estudiante], (err, results) => {
+      if (err) {
+        console.error('Error al obtener las notificaciones:', err);
+        return res.status(500).json({ error: 'Hubo un error al obtener las notificaciones' });
+      }
+
+      // Verificar si hay resultados
+      if (results.length === 0) {
+        return res.status(404).json({ message: 'No se encontraron notificaciones para este estudiante.' });
+      }
+
+      // Responder con los mensajes de las notificaciones
+      const notifications = results.map((row) => ({
+        mensaje: row.mensaje,
+        leida: row.leida,
+        fecha: row.fecha
+      }));
+
+      res.status(200).json(notifications);
+    });
+  });
 
   //COMISION---------------------------------------------------------------------------------------
   // Obtener informes relacionados de asesoria y avance para la comisión
@@ -577,31 +618,30 @@ app.put('/api/actualizacion_informe', (req, res) => {
 
 
 
+
+
   // Ruta para enviar notificaciones
+  // Ruta para crear notificación
   app.post('/api/notificar', (req, res) => {
-    const { id_estudiante, mensaje } = req.body;
+    const { id_estudiante, estado_avance, estado_asesoria, id_asesor } = req.body;
 
-    if (!id_estudiante || !mensaje) {
-      return res.status(400).json({ error: 'Faltan datos necesarios (id_estudiante o mensaje)' });
-    }
+    const mensaje = `El estado de su informe de avance es: ${estado_avance}. El estado de su informe de asesoría es: ${estado_asesoria}.`;
 
-    // Buscar el estudiante por id
-    const estudiante = estudiantes.find(est => est.id_estudiante === id_estudiante);
-    
-    if (!estudiante) {
-      return res.status(404).json({ error: 'Estudiante no encontrado' });
-    }
+    // Inserta la notificación para el estudiante
+    const query = `
+      INSERT INTO notificaciones_informes (id_estudiante, id_asesor, estado_avance, estado_asesoria, mensaje)
+      VALUES (?, ?, ?, ?, ?);
+    `;
 
-    // Aquí, puedes integrar la lógica para enviar la notificación.
-    // Por ejemplo, enviar un correo electrónico al estudiante usando nodemailer
-    // o guardarlo en la base de datos si estás implementando notificaciones dentro de tu sistema.
-
-    // Para esta demostración, simplemente vamos a devolver un mensaje.
-    console.log(`Notificación enviada a ${estudiante.nombre} (${estudiante.correo}): ${mensaje}`);
-
-    // Responder con un mensaje de éxito
-    return res.status(200).json({ mensaje: 'Notificación enviada correctamente', estudiante: estudiante.nombre });
+    db.query(query, [id_estudiante, id_asesor, estado_avance, estado_asesoria, mensaje], (err, result) => {
+      if (err) {
+        console.error('Error al insertar la notificación:', err);
+        return res.status(500).json({ error: 'Error al insertar la notificación' });
+      }
+      res.status(200).json({ message: 'Notificación enviada correctamente' });
+    });
   });
+
   
 
 

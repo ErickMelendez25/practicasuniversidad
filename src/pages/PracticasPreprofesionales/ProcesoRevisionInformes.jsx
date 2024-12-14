@@ -6,7 +6,7 @@ function ProcesoRevisionInformes() {
   const [informes, setInformes] = useState([]);
   const [estado, setEstado] = useState({});
   const [comentarios, setComentarios] = useState({});
-  const [notificaciones, setNotificaciones] = useState([]);
+  const [notificaciones, setNotificaciones] = useState([]);  // Para las notificaciones
   const [avanceFile, setAvanceFile] = useState(null);
   const [asesoriaFile, setAsesoriaFile] = useState(null);
   const [ampliacionFile, setAmpliacionFile] = useState(null);
@@ -74,14 +74,27 @@ function ProcesoRevisionInformes() {
     }
 
     if (user && user.rol === 'estudiante') {
-      axios.get(`http://localhost:5000/api/notificaciones?id_estudiante=${user.id_estudiante}`)
+      // Cambiar la URL para obtener las notificaciones de los informes
+      axios.get(`http://localhost:5000/api/notificaciones_informes?id_estudiante=${user.id_estudiante}`)
         .then(response => {
-          setNotificaciones(response.data);
+          setNotificaciones(response.data);  // Cargar las notificaciones de los informes
         })
         .catch(error => {
-          console.error('Error al obtener notificaciones', error);
+          console.error('Error al obtener notificaciones de informes:', error);
         });
     }
+
+    if (user && user.rol === 'asesor') {
+      // Obtener las últimas notificaciones del asesor
+      axios.get(`http://localhost:5000/api/ultima_notificacion_asesor?id_asesor=${user.id_asesor}`)
+        .then(response => {
+          setNotificaciones([response.data]);  // Solo guardamos la última notificación
+        })
+        .catch(error => {
+          console.error('Error al obtener la última notificación de asesor:', error);
+        });
+    }
+
   }, [user, estado]);
 
   const handleFileChange = (e) => {
@@ -169,33 +182,59 @@ function ProcesoRevisionInformes() {
   };
 
   const handleUpdateState = async (idEstudiante, estadoAsesoria, estadoAvance, idAsesor) => {
-    // Verificar que los valores sean correctos
-    console.log("Datos enviados:", { idEstudiante, estadoAsesoria, estadoAvance, idAsesor });
+  if (!estadoAsesoria || !estadoAvance || !idAsesor) {
+    alert('Faltan datos necesarios para actualizar el estado');
+    return;
+  }
 
-    // Comprobar si los estados de los informes y el id_asesor están presentes
-    if (!estadoAsesoria || !estadoAvance || !idAsesor) {
-      alert('Faltan datos necesarios para actualizar el estado');
-      return;
+  // Enviar la solicitud PUT para actualizar los estados de los informes
+  try {
+    const response = await axios.put('http://localhost:5000/api/actualizacion_informe', {
+      id_estudiante: idEstudiante,
+      estado_informe_asesoria: estadoAsesoria,
+      estado_informe_avance: estadoAvance,
+      id_asesor: idAsesor
+    });
+
+    // Notificar a los estudiantes y asesores
+    const notificationData = {
+      id_estudiante: idEstudiante,
+      estado_asesoria: estadoAsesoria,
+      estado_avance: estadoAvance,
+      id_asesor: idAsesor
+    };
+
+    await axios.post('http://localhost:5000/api/notificar', notificationData);
+
+    // Mostrar mensaje de éxito y actualizar notificaciones
+    alert('Estado actualizado y notificación enviada');
+
+    // Actualizar las notificaciones para el estudiante
+    if (userRole === 'estudiante' ) {
+      // Obtener las notificaciones actualizadas
+      const response = await axios.get(`http://localhost:5000/api/notificaciones_informes?id_estudiante=${user.id_estudiante}`);
+      setNotificaciones(response.data);  // Actualizar las notificaciones
     }
 
-    // Enviar la solicitud PUT para actualizar los estados de los informes
-    try {
-      const response = await axios.put('http://localhost:5000/api/actualizacion_informe', {
-        id_estudiante: idEstudiante,
-        estado_informe_asesoria: estadoAsesoria,
-        estado_informe_avance: estadoAvance,
-        id_asesor: idAsesor
-      });
+    await axios.post('http://localhost:5000/api/notificar', notificationData);
 
-      console.log('Informe actualizado:', response.data);
+    // Mostrar mensaje de éxito y actualizar notificaciones
+    alert('Estado actualizado y notificación enviada');
 
-      // Mostrar un mensaje de éxito
-      alert('Estado actualizado y notificación enviada');
-    } catch (error) {
-      console.error('Error al actualizar el estado:', error.response || error.message);
-      alert(`Hubo un error al actualizar el estado: ${error.response ? error.response.data.error : error.message}`);
+    // Actualizar las notificaciones para el estudiante
+    if (userRole === 'asesor' ) {
+      // Obtener las notificaciones actualizadas
+      const response = await axios.get(`http://localhost:5000/api/notificaciones_informes?id_estudiante=${user.id_estudiante}`);
+      setNotificaciones(response.data);  // Actualizar las notificaciones
     }
-  };
+
+  } catch (error) {
+    console.error('Error al actualizar el estado:', error);
+    alert(`Hubo un error al actualizar el estado: ${error.response ? error.response.data.error : error.message}`);
+  }
+};
+
+
 
   return (
     <div>
@@ -219,6 +258,19 @@ function ProcesoRevisionInformes() {
             </div>
             <button type="submit">Enviar Informe de Avance</button>
           </form>
+
+          <h3>Notificaciones</h3>
+          <div>
+  {notificaciones.length > 0 ? (
+    <div>
+      {/* Mostrar solo el mensaje de la última actualización */}
+      <strong>{notificaciones[0].mensaje}</strong><br />
+      <em>{new Date(notificaciones[0].fecha).toLocaleString()}</em><br />
+    </div>
+  ) : (
+    <p>No tienes notificaciones.</p>
+            )}
+          </div>
         </div>
       )}
 
@@ -242,6 +294,19 @@ function ProcesoRevisionInformes() {
             </div>
             <button type="submit">Enviar Informe de Asesoría</button>
           </form>
+
+          <h3>Notificaciones</h3>
+          <div>
+            {notificaciones.length > 0 ? (
+              <div>
+                {/* Mostrar solo el mensaje de la última actualización */}
+                <strong>{notificaciones[0].mensaje}</strong><br />
+                <em>{new Date(notificaciones[0].fecha).toLocaleString()}</em><br />
+              </div>
+            ) : (
+              <p>No tienes notificaciones.</p>
+            )}
+          </div>
         </div>
       )}
 
@@ -267,7 +332,6 @@ function ProcesoRevisionInformes() {
                   <td style={{ padding: '8px', border: '1px solid #ddd' }}>{informe.id_estudiante}</td>
                   <td style={{ padding: '8px', border: '1px solid #ddd' }}>{informe.id_asesor}</td>
                   <td style={{ padding: '8px', border: '1px solid #ddd' }}>
-                    {/* Aquí se coloca el select para el estado de la asesoria */}
                     <select
                       value={informe.estado_informe_asesoria}
                       onChange={(e) =>
@@ -281,7 +345,6 @@ function ProcesoRevisionInformes() {
                     </select>
                   </td>
                   <td style={{ padding: '8px', border: '1px solid #ddd' }}>
-                    {/* Aquí se coloca el select para el estado de avance */}
                     <select
                       value={informe.estado_revision_avance}
                       onChange={(e) =>
