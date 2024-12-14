@@ -23,14 +23,47 @@ function ProcesoRevisionInformes() {
   const [idEstudiante, setIdEstudiante] = useState('');
   const [idAsesor, setIdAsesor] = useState('');
 
+  // Inicializa un estado que tendrá los estados por id_estudiante
+  const [estadoComision, setEstadoComision] = useState({});
+
   const user = JSON.parse(localStorage.getItem('usuario'));
+
+  // Asegúrate de que, al cargar los informes, el estado se inicialice con los valores correctos
+  useEffect(() => {
+    if (informesComision.length > 0) {
+      const initialEstado = {};
+      informesComision.forEach(informe => {
+        initialEstado[informe.id_estudiante] = {
+          estadoAsesoria: informe.estado_informe_asesoria,
+          estadoAvance: informe.estado_revision_avance
+        };
+      });
+      // Solo setea el estado si el valor realmente cambió
+      if (JSON.stringify(estadoComision) !== JSON.stringify(initialEstado)) {
+        setEstadoComision(initialEstado);
+      }
+    }
+  }, [informesComision]);  // Dependencia: solo se ejecutará cuando informesComision cambie
+  
+
+  // Cambia el estado de la fila individualmente
+  const handleEstadoChange = (idEstudiante, tipo, valor) => {
+    setEstadoComision((prevEstadoComision) => {
+      const updatedEstado = { ...prevEstadoComision };
+      updatedEstado[idEstudiante] = {
+        estadoAsesoria,
+        estadoAvance,
+      };
+      return updatedEstado;
+    });
+  };
 
   useEffect(() => {
     if (user) {
       setUserRole(user.rol);
     }
-
-    // Obtener los informes o notificaciones según el rol
+  
+    // Aquí es importante que no se actualice el estado si no es necesario
     if (user && (user.rol === 'secretaria' || user.rol === 'comision' || user.rol === 'docente')) {
       axios.get('http://localhost:5000/api/informes')
         .then(response => {
@@ -48,25 +81,28 @@ function ProcesoRevisionInformes() {
           console.error('Error al obtener los informes:', error);
         });
     }
-
-    // Obtener la lista de asesores
-    axios.get('http://localhost:5000/api/asesores')
-      .then(response => {
-        setAsesores(response.data);
-      })
-      .catch(error => {
-        console.error('Error al obtener los asesores', error);
-      });
-
-    // Obtener la lista de estudiantes
-    axios.get('http://localhost:5000/api/estudiantes')
-      .then(response => {
-        setEstudiantes(response.data);
-      })
-      .catch(error => {
-        console.error('Error al obtener los estudiantes', error);
-      });
-
+  
+    // Solo obtén asesores y estudiantes una vez si no se han obtenido
+    if (!asesores.length) {
+      axios.get('http://localhost:5000/api/asesores')
+        .then(response => {
+          setAsesores(response.data);
+        })
+        .catch(error => {
+          console.error('Error al obtener los asesores', error);
+        });
+    }
+  
+    if (!estudiantes.length) {
+      axios.get('http://localhost:5000/api/estudiantes')
+        .then(response => {
+          setEstudiantes(response.data);
+        })
+        .catch(error => {
+          console.error('Error al obtener los estudiantes', error);
+        });
+    }
+  
     // Si el usuario es comision, obtener los informes relacionados entre asesoria y avance
     if (user && user.rol === 'comision') {
       axios.get('http://localhost:5000/api/informes_comision')
@@ -77,7 +113,7 @@ function ProcesoRevisionInformes() {
           console.error('Error al obtener los informes de la comisión:', error);
         });
     }
-
+  
     if (user && user.rol === 'estudiante') {
       // Cambiar la URL para obtener las notificaciones de los informes
       axios.get(`http://localhost:5000/api/notificaciones_informes?id_estudiante=${user.id_estudiante}`)
@@ -88,19 +124,23 @@ function ProcesoRevisionInformes() {
           console.error('Error al obtener notificaciones de informes:', error);
         });
     }
-
+  
     if (user && user.rol === 'asesor') {
       // Obtener las últimas notificaciones del asesor
-      axios.get(`http://localhost:5000/api/ultima_notificacion_asesor?id_asesor=${user.id_asesor}`)
+      axios.get(`http://localhost:5000/api/notificaciones_informes?id_asesor=${user.id_asesor}`)
         .then(response => {
-          setNotificaciones([response.data]);  // Solo guardamos la última notificación
+          console.log("Respuesta de notificaciones:", response.data);
+          setNotificaciones(response.data);  // Solo guardamos la última notificación
         })
         .catch(error => {
           console.error('Error al obtener la última notificación de asesor:', error);
         });
-    }
 
-  }, [user, estado]);
+
+    }
+  
+  }, [user, asesores.length, estudiantes.length]);  // Asegúrate de que las dependencias sean las correctas
+  
 
   const handleFileChange = (e) => {
     if (e.target.name === "avance") {
@@ -192,14 +232,21 @@ function ProcesoRevisionInformes() {
       return;
     }
   
-    // Enviar la solicitud PUT para actualizar los estados de los informes
     try {
+      // Enviar la solicitud PUT para actualizar el estado
       const response = await axios.put('http://localhost:5000/api/actualizacion_informe', {
         id_estudiante: idEstudiante,
         estado_informe_asesoria: estadoAsesoria,
         estado_informe_avance: estadoAvance,
         id_asesor: idAsesor
       });
+  
+      // Mostrar mensaje de éxito si la respuesta es exitosa
+      if (response.status === 200) {
+        alert('Estado actualizado correctamente');
+      } else {
+        alert('Hubo un problema al actualizar el estado. Intente de nuevo');
+      }
   
       // Notificar a los estudiantes y asesores
       const notificationData = {
@@ -210,16 +257,6 @@ function ProcesoRevisionInformes() {
       };
   
       await axios.post('http://localhost:5000/api/notificar', notificationData);
-  
-      // Mostrar mensaje de éxito y actualizar notificaciones
-      alert('Estado actualizado y notificación enviada');
-  
-      // Actualizar las notificaciones para el estudiante
-      if (userRole === 'estudiante') {
-        // Obtener las notificaciones actualizadas
-        const response = await axios.get(`http://localhost:5000/api/notificaciones_informes?id_estudiante=${user.id_estudiante}`);
-        setNotificaciones(response.data);  // Actualizar las notificaciones
-      }
   
       // Actualizar el estado de los informes en la interfaz
       setEstado(prevEstado => {
@@ -233,10 +270,12 @@ function ProcesoRevisionInformes() {
       });
   
     } catch (error) {
-      console.error('Error al actualizar el estado:', error);
-      alert(`Hubo un error al actualizar el estado: ${error.response ? error.response.data.error : error.message}`);
+      // Si ocurre un error, mostrar un mensaje de error
+      alert('Error al actualizar el estado: ' + (error.response ? error.response.data.error : error.message));
     }
   };
+  
+  
   
 
 
@@ -303,14 +342,18 @@ function ProcesoRevisionInformes() {
 
           <h3>Notificaciones</h3>
           <div>
-            {notificaciones.length > 0 ? (
-              <div>
-                {/* Mostrar solo el mensaje de la última actualización */}
-                <strong>{notificaciones[0].mensaje}</strong><br />
-                <em>{new Date(notificaciones[0].fecha).toLocaleString()}</em><br />
-              </div>
-            ) : (
-              <p>No tienes notificaciones.</p>
+  {notificaciones.length > 0 ? (
+    <div>
+    {/* Mostrar solo el mensaje de la última actualización */}
+    <strong>{notificaciones[0].mensaje}</strong><br />
+    {isNaN(new Date(notificaciones[0].fecha)) ? (
+      <em>Fecha no válida</em>
+    ) : (
+      <em>{new Date(notificaciones[0].fecha).toLocaleString()}</em>
+    )}
+    </div>
+  ) : (
+    <p>No tienes notificaciones.</p>
             )}
           </div>
         </div>

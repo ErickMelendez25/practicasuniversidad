@@ -404,23 +404,38 @@
 
   // Ruta para obtener las notificaciones de los informes
   app.get('/api/notificaciones_informes', (req, res) => {
-    const { id_estudiante } = req.query; // Obtener el id_estudiante desde los parámetros de consulta
+    const { id_estudiante, id_asesor } = req.query; // Obtener los parámetros id_estudiante y id_asesor desde la consulta
 
-    // Validación para asegurarse de que se pase el id_estudiante
-    if (!id_estudiante) {
-      return res.status(400).json({ error: 'El ID del estudiante es necesario' });
+    // Si no se pasa ni el id_estudiante ni el id_asesor, se devuelve un error
+    if (!id_estudiante && !id_asesor) {
+      return res.status(400).json({ error: 'Se necesita al menos el ID del estudiante o el ID del asesor' });
     }
 
-    // Consulta para obtener las notificaciones de la tabla notificaciones_informes
-    const query = `
-      SELECT mensaje, leida, fecha
-      FROM notificaciones_informes
-      WHERE id_estudiante = ?
-      ORDER BY fecha DESC
-    `;
+    // Definir la consulta base
+    let query = 'SELECT mensaje, leida, fecha FROM notificaciones_informes WHERE';
+    let queryParams = [];
 
-    // Ejecutar la consulta a la base de datos
-    db.query(query, [id_estudiante], (err, results) => {
+    // Si se pasa el id_estudiante, añadir al filtro
+    if (id_estudiante) {
+      query += ' id_estudiante = ?';
+      queryParams.push(id_estudiante);
+    }
+
+    // Si se pasa el id_asesor, añadir al filtro
+    if (id_asesor) {
+      // Si ya hay un filtro por id_estudiante, necesitamos usar un "AND"
+      if (id_estudiante) {
+        query += ' AND';
+      }
+      query += ' id_asesor = ?';
+      queryParams.push(id_asesor);
+    }
+
+    // Ordenar las notificaciones por fecha en orden descendente
+    query += ' ORDER BY fecha DESC';
+
+    // Ejecutar la consulta con los parámetros
+    db.query(query, queryParams, (err, results) => {
       if (err) {
         console.error('Error al obtener las notificaciones:', err);
         return res.status(500).json({ error: 'Hubo un error al obtener las notificaciones' });
@@ -428,7 +443,7 @@
 
       // Verificar si hay resultados
       if (results.length === 0) {
-        return res.status(404).json({ message: 'No se encontraron notificaciones para este estudiante.' });
+        return res.status(404).json({ message: 'No se encontraron notificaciones.' });
       }
 
       // Responder con los mensajes de las notificaciones
@@ -441,6 +456,7 @@
       res.status(200).json(notifications);
     });
   });
+
 
   //COMISION---------------------------------------------------------------------------------------
   // Obtener informes relacionados de asesoria y avance para la comisión
