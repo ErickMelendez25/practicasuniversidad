@@ -461,6 +461,82 @@
 
 
   //COMISION---------------------------------------------------------------------------------------
+
+  // Obtener informes de estudiantes y asesores que tienen ambos informes aprobados
+  app.get('/api/informes/comision', (req, res) => {
+    const query = `
+        SELECT
+            estudiante.id AS id_estudiante,
+            asesor.id AS id_asesor,
+            informe_avance.estado AS estado_avance,
+            informe_asesoria.estado AS estado_asesoria,
+            informe_avance.informe_final AS informe_avance,
+            informe_asesoria.informe_final_asesoria AS informe_asesoria
+        FROM
+            estudiantes estudiante
+        LEFT JOIN informes_final informe_avance ON estudiante.id = informe_avance.id_estudiante
+        LEFT JOIN informes_finalAsesoria informe_asesoria ON estudiante.id_asesor = informe_asesoria.id_asesor
+        WHERE
+            informe_avance.estado = 'Aprobado' AND
+            informe_asesoria.estado = 'Aprobado';
+    `;
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('Error al obtener los informes de la comisión:', err);
+            return res.status(500).send('Error al obtener los informes');
+        }
+        res.send(results);
+    });
+  });
+
+
+  // Obtener lista de revisores
+  app.get('/api/revisores', (req, res) => {
+    // Aquí obtienes los revisores de la base de datos, luego los devuelves como JSON
+    db.query('SELECT * FROM revisores', (err, results) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Error al obtener los revisores' });
+      }
+      res.json(results);  // Respuesta en formato JSON
+    });
+  });
+
+  // Asignar revisor y actualizar estados de los informes
+  app.post('/api/asignarRevisor', (req, res) => {
+    const {
+      id_estudiante, 
+      id_asesor, 
+      informe_final, 
+      informe_final_asesoria, 
+      estado_informe_avance, 
+      estado_informe_asesoria, 
+      id_revisor
+    } = req.body;
+  
+    // Verificar que los campos requeridos estén presentes
+    if (!id_estudiante || !id_asesor || !id_revisor) {
+      return res.status(400).send('Faltan campos requeridos');
+    }
+  
+    // Consulta para insertar los datos en la tabla `informes_revisados`
+    const query = `
+      INSERT INTO informes_revisados 
+      (id_estudiante, id_asesor, informe_final, informe_final_asesoria, estado_informe_avance, estado_informe_asesoria, id_revisor)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+  
+    // Ejecutar la consulta para insertar los datos
+    db.query(query, [id_estudiante, id_asesor, informe_final, informe_final_asesoria, estado_informe_avance, estado_informe_asesoria, id_revisor], (err, result) => {
+      if (err) {
+        console.error('Error al asignar el revisor:', err);
+        return res.status(500).send('Error al asignar el revisor');
+      }
+      res.status(200).send('Revisor asignado correctamente');
+    });
+  });
+  
+
   // Obtener informes relacionados de asesoria y avance para la comisión
   app.get('/api/informes_comision', (req, res) => {
     // Consulta SQL para obtener los informes de asesoría y avance más recientes relacionados

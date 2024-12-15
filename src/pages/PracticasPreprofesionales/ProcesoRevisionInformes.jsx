@@ -33,11 +33,18 @@ function ProcesoRevisionInformes() {
 
   const [informeFinalAsesoria, setInformeFinalAsesoria] = useState(null);
 
+  // Estado para los revisoressssssssssssssssssssssssssssssssssssss
+  const [revisores, setRevisores] = useState([]);
+  const [selectedRevisor, setSelectedRevisores] = useState('');
+
+  
 
   // Inicializa un estado que tendrá los estados por id_estudiante
   const [estadoComision, setEstadoComision] = useState({});
 
   const user = JSON.parse(localStorage.getItem('usuario'));
+
+  
 
   // Asegúrate de que, al cargar los informes, el estado se inicialice con los valores correctos
   useEffect(() => {
@@ -110,6 +117,17 @@ function ProcesoRevisionInformes() {
   useEffect(() => {
     if (user) {
       setUserRole(user.rol);
+    }
+
+    // Verifica si el rol es 'comision'
+    if (!revisores.length) {
+      axios.get('http://localhost:5000/api/revisores')
+        .then(response => {
+          setRevisores(response.data); // Asigna los datos de los revisores a la variable de estado
+        })
+        .catch(error => {
+          console.error('Error al obtener los revisores', error); // Manejo de errores
+        });
     }
   
     // Aquí es importante que no se actualice el estado si no es necesario
@@ -191,7 +209,7 @@ function ProcesoRevisionInformes() {
         });
     }
   
-  }, [user, asesores.length, estudiantes.length,notificaciones.length]);  // Asegúrate de que las dependencias sean las correctas
+  }, [user, asesores.length, estudiantes.length,notificaciones.length,revisores.length]);  // Asegúrate de que las dependencias sean las correctas
   
 
 
@@ -395,6 +413,63 @@ function ProcesoRevisionInformes() {
       alert('Error al actualizar el estado: ' + (error.response ? error.response.data.error : error.message));
     }
   };
+
+
+
+  //DAR CLICK EN EL BOTON DE ASIGNAR
+
+  const handleAssignRevisor = async () => {
+    // Verificar si se ha seleccionado un revisor
+    if (!selectedRevisor) {
+      alert('Por favor selecciona un revisor.');
+      return;
+    }
+  
+    // Verificar que todos los campos requeridos estén definidos
+    const idEstudiante = user.id_estudiante;  // Asegúrate de que `user.id_estudiante` tenga valor
+    const idAsesor = selectedAsesor;  // Asegúrate de que `selectedAsesor` tenga valor
+    const informeFinal = finalFile;  // Asegúrate de que `finalFile` tenga valor
+    const informeFinalAsesoriaValue = informeFinalAsesoria;  // Asegúrate de que `informeFinalAsesoria` tenga valor
+    const estadoInformeAvance = estadoAvance;  // Asegúrate de que `estadoAvance` tenga valor
+    const estadoInformeAsesoria = estadoAsesoria;  // Asegúrate de que `estadoAsesoria` tenga valor
+  
+    // Si alguno de los campos requeridos no tiene valor, muestra un error
+    if (!idEstudiante || !idAsesor || !informeFinal || !informeFinalAsesoriaValue || !estadoInformeAvance || !estadoInformeAsesoria) {
+      alert('Por favor asegúrate de que todos los campos estén completos.');
+      return;
+    }
+  
+    // Crear el objeto data con los valores
+    const data = {
+      id_estudiante: idEstudiante,
+      id_asesor: idAsesor,
+      informe_final: informeFinal,
+      informe_final_asesoria: informeFinalAsesoriaValue,
+      estado_informe_avance: estadoInformeAvance,
+      estado_informe_asesoria: estadoInformeAsesoria,
+      id_revisor: selectedRevisor,
+    };
+  
+    try {
+      // Enviar los datos al backend
+      const response = await axios.post('http://localhost:5000/api/asignarRevisor', data);
+  
+      // Verificar si la respuesta fue exitosa
+      if (response.status === 200) {
+        alert(response.data);  // Mostrar el mensaje de éxito
+        console.log('Revisor asignado correctamente');
+      } else {
+        alert('Error al asignar el revisor. Intente nuevamente.');
+      }
+    } catch (error) {
+      // Manejar errores
+      console.error('Error al asignar el revisor:', error);
+      alert('Error al asignar el revisor. ' + (error.response ? error.response.data : error.message));
+    }
+  };
+  
+
+
     return (
     <div>
       {/* Vista Estudiante */}
@@ -510,6 +585,8 @@ function ProcesoRevisionInformes() {
                 <th style={{ textAlign: 'left', padding: '8px', border: '1px solid #ddd' }}>Estado Avance</th>
                 <th style={{ textAlign: 'left', padding: '8px', border: '1px solid #ddd' }}>Informe Asesoría</th>
                 <th style={{ textAlign: 'left', padding: '8px', border: '1px solid #ddd' }}>Informe Avance</th>
+                <th style={{ textAlign: 'left', padding: '8px', border: '1px solid #ddd' }}>Revisor</th> {/* Nueva columna */}
+                <th style={{ textAlign: 'left', padding: '8px', border: '1px solid #ddd' }}>Asignar</th> {/* Nueva columna */}
                 <th style={{ textAlign: 'left', padding: '8px', border: '1px solid #ddd' }}>Acción</th>
               </tr>
             </thead>
@@ -552,6 +629,34 @@ function ProcesoRevisionInformes() {
                       </a>
                     )}
                   </td>
+
+                  {/* Columna para seleccionar el revisor */}
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                    <select
+                      value={selectedRevisor}
+                      onChange={(e) => setSelectedRevisores(e.target.value)}
+                      required
+                    >
+                      <option value="">Seleccionar Revisor</option>
+                      {revisores.map((revisor) => (
+                        <option key={revisor.id} value={revisor.id}>
+                          {revisor.dni} 
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+
+                  {/* Columna para el botón de asignar */}
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                    <button
+                      onClick={() =>
+                        handleAssignRevisor(informe.id_estudiante, informe.id_asesor, informe.informe_avance, informe.informe_asesoria, selectedRevisor)
+                      }
+                    >
+                      Asignar
+                    </button>
+                  </td>
+
                   <td style={{ padding: '8px', border: '1px solid #ddd' }}>
                     <button
                       onClick={() =>
