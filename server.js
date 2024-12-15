@@ -13,6 +13,8 @@
   const app = express();
   const port = 5000;
 
+  
+
   app.use(express.json());
   app.use(cors());
 
@@ -779,7 +781,7 @@ app.put('/api/actualizacion_informe', (req, res) => {
     const { id_estudiante } = req.body;
     const final = req.file.filename;
 
-    const query = 'INSERT INTO informes_final (id_estudiante, final, estado) VALUES (?, ?, ?)';
+    const query = 'INSERT INTO informes_final (id_estudiante, informe_final, estado) VALUES (?, ?, ?)';
     db.query(query, [id_estudiante, final, 'Pendiente'], (err, result) => {
       if (err) {
         console.error('Error al guardar el informe final:', err);

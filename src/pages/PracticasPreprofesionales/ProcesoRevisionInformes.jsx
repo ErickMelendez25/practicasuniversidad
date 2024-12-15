@@ -23,6 +23,12 @@ function ProcesoRevisionInformes() {
   const [idEstudiante, setIdEstudiante] = useState('');
   const [idAsesor, setIdAsesor] = useState('');
 
+
+  //para que aparezca el informe final en la vista de estudainte
+  //const [finalFile, setFinalFile] = useState(null); // Estado para el archivo de informe final
+  const [mostrarFormularioFinal, setMostrarFormularioFinal] = useState(false); // Controla la visibilidad del formulario final
+
+
   // Inicializa un estado que tendrá los estados por id_estudiante
   const [estadoComision, setEstadoComision] = useState({});
 
@@ -48,15 +54,34 @@ function ProcesoRevisionInformes() {
 
   // Cambia el estado de la fila individualmente
   const handleEstadoChange = (idEstudiante, tipo, valor) => {
-    setEstadoComision((prevEstadoComision) => {
-      const updatedEstado = { ...prevEstadoComision };
-      updatedEstado[idEstudiante] = {
-        estadoAsesoria,
-        estadoAvance,
-      };
-      return updatedEstado;
-    });
+  setEstadoComision(prevEstadoComision => {
+    const updatedEstado = { ...prevEstadoComision };
+    if (!updatedEstado[idEstudiante]) {
+      updatedEstado[idEstudiante] = { estadoAsesoria: "", estadoAvance: "" };
+    }
+    updatedEstado[idEstudiante][tipo] = valor;  // Actualiza solo el tipo (estadoAsesoria o estadoAvance)
+    return updatedEstado;
+  });
   };
+
+   // Obtención de notificaciones
+   useEffect(() => {
+    if (user && user.rol === 'estudiante') {
+      axios.get(`http://localhost:5000/api/notificaciones_informes?id_estudiante=${user.id_estudiante}`,
+        {timeout: 10000}
+      )
+        .then(response => {
+          setNotificaciones(response.data);
+          // Verifica si la última notificación indica que el informe de avance está aprobado
+          if (response.data.length > 0 && response.data[0].mensaje.includes('Aprobado')) {
+            setMostrarFormularioFinal(true);  // Muestra el formulario de informe final
+          }
+        })
+        .catch(error => {
+          console.error('Error al obtener notificaciones de informes:', error);
+        });
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -65,9 +90,9 @@ function ProcesoRevisionInformes() {
   
     // Aquí es importante que no se actualice el estado si no es necesario
     if (user && (user.rol === 'secretaria' || user.rol === 'comision' || user.rol === 'docente')) {
-      axios.get('http://localhost:5000/api/informes')
+      axios.get('http://localhost:5000/api/informes_comision')
         .then(response => {
-          setInformes(response.data);
+          setInformesComision(response.data);
           // Inicializar estado de los informes
           if (Object.keys(estado).length === 0) {
             const initialEstado = {};
@@ -104,7 +129,7 @@ function ProcesoRevisionInformes() {
     }
   
     // Si el usuario es comision, obtener los informes relacionados entre asesoria y avance
-    if (user && user.rol === 'comision') {
+    /*if (user && user.rol === 'comision') {
       axios.get('http://localhost:5000/api/informes_comision')
         .then(response => {
           setInformesComision(response.data);
@@ -112,17 +137,20 @@ function ProcesoRevisionInformes() {
         .catch(error => {
           console.error('Error al obtener los informes de la comisión:', error);
         });
-    }
+    }*/
   
-    if (user && user.rol === 'estudiante') {
-      // Cambiar la URL para obtener las notificaciones de los informes
-      axios.get(`http://localhost:5000/api/notificaciones_informes?id_estudiante=${user.id_estudiante}`)
-        .then(response => {
-          setNotificaciones(response.data);  // Cargar las notificaciones de los informes
-        })
-        .catch(error => {
-          console.error('Error al obtener notificaciones de informes:', error);
-        });
+    if (user && user.rol === 'estudiante' && notificaciones.length === 0) {
+    axios.get(`http://localhost:5000/api/notificaciones_informes?id_estudiante=${user.id_estudiante}`, { timeout: 10000 })
+      .then(response => {
+        setNotificaciones(response.data);
+        // Verifica si la última notificación indica que el informe de avance está aprobado
+        if (response.data.length > 0 && response.data[0].mensaje.includes('Aprobado')) {
+          setMostrarFormularioFinal(true);  // Muestra el formulario de informe final
+        }
+      })
+      .catch(error => {
+        console.error('Error al obtener notificaciones de informes:', error);
+      });
     }
   
     if (user && user.rol === 'asesor') {
@@ -139,7 +167,11 @@ function ProcesoRevisionInformes() {
 
     }
   
-  }, [user, asesores.length, estudiantes.length]);  // Asegúrate de que las dependencias sean las correctas
+  }, [user, asesores.length, estudiantes.length,notificaciones.length]);  // Asegúrate de que las dependencias sean las correctas
+  
+
+
+  //INFORME FINAL HABILITADO PARA VISTA DE Estudiante
   
 
   const handleFileChange = (e) => {
@@ -151,6 +183,36 @@ function ProcesoRevisionInformes() {
       setAmpliacionFile(e.target.files[0]);
     } else if (e.target.name === "final") {
       setFinalFile(e.target.files[0]);
+    }
+    if (e.target.name === "final") {
+      setFinalFile(e.target.files[0]);
+    }
+  };
+
+  // Enviar informe final
+  const submitInformeFinal = async () => {
+    if (!finalFile) {
+      alert('Debe seleccionar un informe final.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('final', finalFile);
+    formData.append('id_estudiante', user.id_estudiante); // ID del estudiante logueado
+
+    try {
+      const response = await axios.post('http://localhost:5000/api/informes/final', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (response.status === 200) {
+        alert('Informe final enviado exitosamente');
+      } else {
+        alert('Error en el servidor, no se pudo procesar el informe final');
+      }
+    } catch (error) {
+      console.error('Error al enviar el informe final:', error.response || error.message);
+      alert('Error al enviar el informe final');
     }
   };
 
@@ -274,14 +336,7 @@ function ProcesoRevisionInformes() {
       alert('Error al actualizar el estado: ' + (error.response ? error.response.data.error : error.message));
     }
   };
-  
-  
-  
-
-
-
-
-  return (
+    return (
     <div>
       {/* Vista Estudiante */}
       {userRole === 'estudiante' && (
@@ -303,19 +358,41 @@ function ProcesoRevisionInformes() {
             </div>
             <button type="submit">Enviar Informe de Avance</button>
           </form>
+          
+          
+
+
+
+
+          
 
           <h3>Notificaciones</h3>
           <div>
-  {notificaciones.length > 0 ? (
-    <div>
-      {/* Mostrar solo el mensaje de la última actualización */}
-      <strong>{notificaciones[0].mensaje}</strong><br />
-      <em>{new Date(notificaciones[0].fecha).toLocaleString()}</em><br />
-    </div>
-  ) : (
-    <p>No tienes notificaciones.</p>
+            {notificaciones.length > 0 ? (
+              <div>
+              {/* Mostrar solo el mensaje de la última actualización */}
+              <strong>{notificaciones[0].mensaje}</strong><br />
+              {isNaN(new Date(notificaciones[0].fecha)) ? (
+                <em>Fecha no válida</em>
+              ) : (
+                <em>{new Date(notificaciones[0].fecha).toLocaleString()}</em>
+              )}
+            </div>
+            ) : (
+              <p>No tienes notificaciones.</p>
             )}
           </div>
+          {/* Mostrar formulario para enviar informe final solo si está aprobado el informe de avance */}
+          {notificaciones.length > 0 && notificaciones[0].mensaje.includes('Aprobado') &&  (
+            <div>
+              <h3>Informe Final</h3>
+              <form onSubmit={submitInformeFinal}>
+                <label>Informe Final:</label>
+                <input type="file" name="final" onChange={handleFileChange} required />
+                <button type="submit">Enviar Informe Final</button>
+              </form>
+            </div>
+          )}
         </div>
       )}
 
@@ -358,7 +435,6 @@ function ProcesoRevisionInformes() {
           </div>
         </div>
       )}
-
       {/* Vista Comisión */}
       {userRole === 'comision' && (
         <div>
@@ -376,13 +452,13 @@ function ProcesoRevisionInformes() {
               </tr>
             </thead>
             <tbody>
-              {informesComision.map((informe) => (
-                <tr key={informe.id_estudiante}>
+              {informesComision.map((informe, index) => (
+                <tr key={`${informe.id_estudiante}-${index}`}> {/* Usando una combinación única de id_estudiante e índice */}
                   <td style={{ padding: '8px', border: '1px solid #ddd' }}>{informe.id_estudiante}</td>
                   <td style={{ padding: '8px', border: '1px solid #ddd' }}>{informe.id_asesor}</td>
                   <td style={{ padding: '8px', border: '1px solid #ddd' }}>
                     <select
-                      value={estadoAsesoria || informe.estado_informe_asesoria}  // Asegúrate de que el valor esté sincronizado
+                      value={estadoAsesoria}
                       onChange={(e) => setEstadoAsesoria(e.target.value)} // Actualiza el estado de asesoría
                     >
                       <option value="Aprobado">Aprobado</option>
@@ -392,7 +468,7 @@ function ProcesoRevisionInformes() {
                   </td>
                   <td style={{ padding: '8px', border: '1px solid #ddd' }}>
                     <select
-                      value={estadoAvance || informe.estado_revision_avance}  // Asegúrate de que el valor esté sincronizado
+                      value={estadoAvance}
                       onChange={(e) => setEstadoAvance(e.target.value)} // Actualiza el estado de avance
                     >
                       <option value="Aprobado">Aprobado</option>
