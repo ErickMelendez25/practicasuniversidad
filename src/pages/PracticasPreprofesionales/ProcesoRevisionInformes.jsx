@@ -10,7 +10,9 @@ function ProcesoRevisionInformes() {
   const [avanceFile, setAvanceFile] = useState(null);
   const [asesoriaFile, setAsesoriaFile] = useState(null);
   const [ampliacionFile, setAmpliacionFile] = useState(null);
+
   const [finalFile, setFinalFile] = useState(null);
+
   const [docenteComentarios, setDocenteComentarios] = useState({});
   const [asesores, setAsesores] = useState([]);
   const [estudiantes, setEstudiantes] = useState([]);
@@ -27,6 +29,9 @@ function ProcesoRevisionInformes() {
   //para que aparezca el informe final en la vista de estudainte
   //const [finalFile, setFinalFile] = useState(null); // Estado para el archivo de informe final
   const [mostrarFormularioFinal, setMostrarFormularioFinal] = useState(false); // Controla la visibilidad del formulario final
+  const [mostrarFormularioFinalAsesoria, setMostrarFormularioFinalAsesoria] = useState(false); 
+
+  const [informeFinalAsesoria, setInformeFinalAsesoria] = useState(null);
 
 
   // Inicializa un estado que tendrá los estados por id_estudiante
@@ -75,6 +80,25 @@ function ProcesoRevisionInformes() {
           // Verifica si la última notificación indica que el informe de avance está aprobado
           if (response.data.length > 0 && response.data[0].mensaje.includes('Aprobado')) {
             setMostrarFormularioFinal(true);  // Muestra el formulario de informe final
+          }
+        })
+        .catch(error => {
+          console.error('Error al obtener notificaciones de informes:', error);
+        });
+    }
+  }, [user]);
+
+  // Obtención de notificaciones
+  useEffect(() => {
+    if (user && user.rol === 'asesor') {
+      axios.get(`http://localhost:5000/api/notificaciones_informes?id_asesor=${user.id_asesor}`,
+        {timeout: 10000}
+      )
+        .then(response => {
+          setNotificaciones(response.data);
+          // Verifica si la última notificación indica que el informe de avance está aprobado
+          if (response.data.length > 0 && response.data[0].mensaje.includes('Aprobado')) {
+            setMostrarFormularioFinalAsesoria(true);  // Muestra el formulario de informe final
           }
         })
         .catch(error => {
@@ -153,18 +177,18 @@ function ProcesoRevisionInformes() {
       });
     }
   
-    if (user && user.rol === 'asesor') {
-      // Obtener las últimas notificaciones del asesor
-      axios.get(`http://localhost:5000/api/notificaciones_informes?id_asesor=${user.id_asesor}`)
+    if (user && user.rol === 'asesor' && notificaciones.length === 0) {
+      axios.get(`http://localhost:5000/api/notificaciones_informes?id_asesor=${user.id_asesor}`, { timeout: 10000 })
         .then(response => {
-          console.log("Respuesta de notificaciones:", response.data);
-          setNotificaciones(response.data);  // Solo guardamos la última notificación
+          setNotificaciones(response.data);
+          // Verifica si la última notificación indica que el informe de avance está aprobado
+          if (response.data.length > 0 && response.data[0].mensaje.includes('Aprobado')) {
+            setMostrarFormularioFinalAsesoria(true);  // Muestra el formulario de informe final
+          }
         })
         .catch(error => {
-          console.error('Error al obtener la última notificación de asesor:', error);
+          console.error('Error al obtener notificaciones de informes:', error);
         });
-
-
     }
   
   }, [user, asesores.length, estudiantes.length,notificaciones.length]);  // Asegúrate de que las dependencias sean las correctas
@@ -187,7 +211,42 @@ function ProcesoRevisionInformes() {
     if (e.target.name === "final") {
       setFinalFile(e.target.files[0]);
     }
+    if (e.target.name === "finalAsesoria") {
+      setInformeFinalAsesoria(e.target.files[0]);
+    }
   };
+
+  // Enviar Informe final Asesoria
+
+  const submitInformeFinalAsesoria = async () => {
+    if (!finalFileAsesoria) {
+      alert('Debe seleccionar un informe final.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('finalAsesoria', finalFileAsesoria);
+    formData.append('id_asesor', user.id_asesor); // ID del estudiante logueado
+
+    try {
+      const response = await axios.post('http://localhost:5000/api/informes/final', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (response.status === 200) {
+        alert('Informe final de asesoria enviado exitosamente');
+      } else {
+        alert('Error en el servidor, no se pudo procesar el informe final de asesoria');
+      }
+    } catch (error) {
+      console.error('Error al enviar el informe final asesoria:', error.response || error.message);
+      alert('Error al enviar el informe finalasesoria');
+    }
+  };
+
+
+
+  
 
   // Enviar informe final
   const submitInformeFinal = async () => {
@@ -433,6 +492,17 @@ function ProcesoRevisionInformes() {
     <p>No tienes notificaciones.</p>
             )}
           </div>
+          {/* Mostrar formulario para enviar informe final solo si está aprobado el informe de avance */}
+          {notificaciones.length > 0 && notificaciones[0].mensaje.includes('Aprobado') &&  (
+            <div>
+              <h3>Informe Final</h3>
+              <form onSubmit={submitInformeFinalAsesoria}>
+                <label>Informe Final:</label>
+                <input type="file" name="finalAsesoria" onChange={handleFileChange} required />
+                <button type="submit">Enviar Informe Final</button>
+              </form>
+            </div>
+          )}
         </div>
       )}
       {/* Vista Comisión */}
