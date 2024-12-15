@@ -219,17 +219,17 @@ function ProcesoRevisionInformes() {
   // Enviar Informe final Asesoria
 
   const submitInformeFinalAsesoria = async () => {
-    if (!finalFileAsesoria) {
+    if (!informeFinalAsesoria) {
       alert('Debe seleccionar un informe final.');
       return;
     }
 
     const formData = new FormData();
-    formData.append('finalAsesoria', finalFileAsesoria);
+    formData.append('finalAsesoria', informeFinalAsesoria);
     formData.append('id_asesor', user.id_asesor); // ID del estudiante logueado
 
     try {
-      const response = await axios.post('http://localhost:5000/api/informes/final', formData, {
+      const response = await axios.post('http://localhost:5000/api/informes/finalAsesoria', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
@@ -417,14 +417,6 @@ function ProcesoRevisionInformes() {
             </div>
             <button type="submit">Enviar Informe de Avance</button>
           </form>
-          
-          
-
-
-
-
-          
-
           <h3>Notificaciones</h3>
           <div>
             {notificaciones.length > 0 ? (

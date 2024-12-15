@@ -777,6 +777,8 @@ app.put('/api/actualizacion_informe', (req, res) => {
     });
   });
 
+  //ESTO ES PARA LA VISTA DE ESTUDIANTE CUANDO ENVIA SU INFORME FINAL DE AVANCE-------------
+
   app.post('/api/informes/final', upload.single('final'), (req, res) => {
     const { id_estudiante } = req.body;
     const final = req.file.filename;
@@ -788,6 +790,21 @@ app.put('/api/actualizacion_informe', (req, res) => {
         return res.status(500).send('Error al guardar el informe final');
       }
       res.send({ message: 'Informe final recibido exitosamente' });
+    });
+  });
+
+  //ESTO ES PARA LA VISTA DE ASESOR CUANDO ENVIA SU INFORME FINAL DE ASESORIA-------------
+  app.post('/api/informes/finalAsesoria', upload.single('finalAsesoria'), (req, res) => {
+    const { id_asesor } = req.body;
+    const finalAsesoria = req.file.filename;
+
+    const query = 'INSERT INTO informes_finalAsesoria (id_asesor, informe_final_asesoria, estado) VALUES (?, ?, ?)';
+    db.query(query, [id_asesor, finalAsesoria, 'Pendiente'], (err, result) => {
+      if (err) {
+        console.error('Error al guardar el informe final Asesoria:', err);
+        return res.status(500).send('Error al guardar el informe final Aaesoria');
+      }
+      res.send({ message: 'Informe final Asesoria recibido exitosamente' });
     });
   });
 
