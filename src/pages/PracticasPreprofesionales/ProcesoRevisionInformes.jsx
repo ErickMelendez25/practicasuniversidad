@@ -11,8 +11,7 @@ function ProcesoRevisionInformes() {
   const [asesoriaFile, setAsesoriaFile] = useState(null);
   const [ampliacionFile, setAmpliacionFile] = useState(null);
 
-  const [finalFile, setFinalFile] = useState(null);
-
+  
   const [docenteComentarios, setDocenteComentarios] = useState({});
   const [asesores, setAsesores] = useState([]);
   const [estudiantes, setEstudiantes] = useState([]);
@@ -31,6 +30,7 @@ function ProcesoRevisionInformes() {
   const [mostrarFormularioFinal, setMostrarFormularioFinal] = useState(false); // Controla la visibilidad del formulario final
   const [mostrarFormularioFinalAsesoria, setMostrarFormularioFinalAsesoria] = useState(false); 
 
+  const [finalFile, setFinalFile] = useState(null);
   const [informeFinalAsesoria, setInformeFinalAsesoria] = useState(null);
 
   // Estado para los revisoressssssssssssssssssssssssssssssssssssss
@@ -217,6 +217,7 @@ function ProcesoRevisionInformes() {
   
 
   const handleFileChange = (e) => {
+    // Verificar qué archivo se ha seleccionado y actualizar el estado adecuado
     if (e.target.name === "avance") {
       setAvanceFile(e.target.files[0]);
     } else if (e.target.name === "asesoria") {
@@ -225,18 +226,16 @@ function ProcesoRevisionInformes() {
       setAmpliacionFile(e.target.files[0]);
     } else if (e.target.name === "final") {
       setFinalFile(e.target.files[0]);
-    }
-    if (e.target.name === "final") {
-      setFinalFile(e.target.files[0]);
-    }
-    if (e.target.name === "finalAsesoria") {
+    } else if (e.target.name === "finalAsesoria") {
       setInformeFinalAsesoria(e.target.files[0]);
     }
   };
+  
+  
 
   // Enviar Informe final Asesoria
 
-  const submitInformeFinalAsesoria = async () => {
+  const submitInformeFinalAsesoria = async (InformeFinalAsesoria) => {
     if (!informeFinalAsesoria) {
       alert('Debe seleccionar un informe final.');
       return;
@@ -267,7 +266,9 @@ function ProcesoRevisionInformes() {
   
 
   // Enviar informe final
-  const submitInformeFinal = async () => {
+  const SubmitInformeFinal = async (finalfile) => {
+    
+
     if (!finalFile) {
       alert('Debe seleccionar un informe final.');
       return;
@@ -277,6 +278,9 @@ function ProcesoRevisionInformes() {
     formData.append('final', finalFile);
     formData.append('id_estudiante', user.id_estudiante); // ID del estudiante logueado
 
+    // Imprimir el archivo en consola para verificar si está seleccionado
+    console.log("Archivo a enviar:", finalFile);
+
     try {
       const response = await axios.post('http://localhost:5000/api/informes/final', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -284,6 +288,7 @@ function ProcesoRevisionInformes() {
 
       if (response.status === 200) {
         alert('Informe final enviado exitosamente');
+        
       } else {
         alert('Error en el servidor, no se pudo procesar el informe final');
       }
@@ -343,6 +348,29 @@ function ProcesoRevisionInformes() {
     }
   };
 
+
+  const handleSubmitInformeFinal = async (e) => {
+    e.preventDefault();
+
+    if (!finalFile) {
+      alert('Debe seleccionar un informe final.');
+      return;
+    }
+
+    SubmitInformeFinal(finalFile);
+  };
+
+  const handleSubmitInformeFinalAsesoria = async (e) => {
+    e.preventDefault();
+
+    if (!informeFinalAsesoria) {
+      alert('Debe seleccionar un informe final de asesoria.');
+      return;
+    }
+
+    submitInformeFinalAsesoria(informeFinalAsesoria);
+  };
+
   const handleSubmitAvance = async (e) => {
     e.preventDefault();
 
@@ -353,6 +381,8 @@ function ProcesoRevisionInformes() {
 
     submitInformeAvance(avanceFile, selectedAsesor);
   };
+
+  
 
   const handleSubmitAsesoria = async (e) => {
     e.preventDefault();
@@ -365,6 +395,15 @@ function ProcesoRevisionInformes() {
     submitInformeAsesoria(asesoriaFile, selectedEstudiante);
   };
 
+  
+
+  
+
+  
+
+  
+
+  //REPLICAAAAAAAAA---------------------------------OOOOOOO-OO-O-O-O-O-O-O-O-O-O--O-O-O-O-O-O-O--OO-O-O-O
   const handleUpdateState = async (idEstudiante, estadoAsesoria, estadoAvance, idAsesor) => {
     if (!estadoAsesoria || !estadoAvance || !idAsesor) {
       alert('Faltan datos necesarios para actualizar el estado');
@@ -414,59 +453,67 @@ function ProcesoRevisionInformes() {
     }
   };
 
+  
+
+
 
 
   //DAR CLICK EN EL BOTON DE ASIGNAR
 
-  const handleAssignRevisor = async () => {
-    // Verificar si se ha seleccionado un revisor
-    if (!selectedRevisor) {
-      alert('Por favor selecciona un revisor.');
-      return;
-    }
-  
-    // Verificar que todos los campos requeridos estén definidos
-    const idEstudiante = user.id_estudiante;  // Asegúrate de que `user.id_estudiante` tenga valor
-    const idAsesor = selectedAsesor;  // Asegúrate de que `selectedAsesor` tenga valor
-    const informeFinal = finalFile;  // Asegúrate de que `finalFile` tenga valor
-    const informeFinalAsesoriaValue = informeFinalAsesoria;  // Asegúrate de que `informeFinalAsesoria` tenga valor
-    const estadoInformeAvance = estadoAvance;  // Asegúrate de que `estadoAvance` tenga valor
-    const estadoInformeAsesoria = estadoAsesoria;  // Asegúrate de que `estadoAsesoria` tenga valor
-  
-    // Si alguno de los campos requeridos no tiene valor, muestra un error
-    if (!idEstudiante || !idAsesor || !informeFinal || !informeFinalAsesoriaValue || !estadoInformeAvance || !estadoInformeAsesoria) {
-      alert('Por favor asegúrate de que todos los campos estén completos.');
-      return;
-    }
-  
-    // Crear el objeto data con los valores
-    const data = {
-      id_estudiante: idEstudiante,
-      id_asesor: idAsesor,
-      informe_final: informeFinal,
-      informe_final_asesoria: informeFinalAsesoriaValue,
-      estado_informe_avance: estadoInformeAvance,
-      estado_informe_asesoria: estadoInformeAsesoria,
-      id_revisor: selectedRevisor,
-    };
-  
+  const handleAssignUpdate = async (idEstudiante, idAsesor) => {
+    // Verificar si se han proporcionado todos los datos necesarios
+    
+
     try {
-      // Enviar los datos al backend
-      const response = await axios.post('http://localhost:5000/api/asignarRevisor', data);
-  
-      // Verificar si la respuesta fue exitosa
-      if (response.status === 200) {
-        alert(response.data);  // Mostrar el mensaje de éxito
-        console.log('Revisor asignado correctamente');
-      } else {
-        alert('Error al asignar el revisor. Intente nuevamente.');
-      }
+        // 1. Solicitar informe final del estudiante desde la API
+        const informeFinalResponse = await axios.get(`http://localhost:5000/api/informeFinal/${idEstudiante}`);
+        const infi = informeFinalResponse.data.informe_final;
+
+        // 2. Solicitar informe final de asesoría desde la API
+        const informeFinalAsesoriaResponse = await axios.get(`http://localhost:5000/api/informeFinalAsesoria/${idAsesor}`);
+        const infias = informeFinalAsesoriaResponse.data.informe_final_asesoria;
+
+        // Verificar si ambos informes existen
+        if (!infi || !infias) {
+            alert('Uno o ambos informes no están disponibles.');
+            return;
+        }
+
+        console.log('Informe Final:', infi);
+        console.log('Informe Final Asesoría:', infias);
+
+        // Verificar los valores antes de enviar
+        console.log("idEstudiante:", idEstudiante);
+        console.log("idAsesor:", idAsesor);
+        console.log("selectedRevisor:", selectedRevisor); // Aquí está el nuevo console log
+        
+
+        // Enviar la solicitud PUT con los datos obtenidos
+        const response = await axios.put('http://localhost:5000/api/asignar_actualizar', {
+            id_estudiante: idEstudiante,         // ID del estudiante
+            id_asesor: idAsesor,                 // ID del asesor
+            informe_final:  infi, // Informe final (archivo o el obtenido)
+            informe_final_asesoria: infias, // Informe de asesoría (archivo o el obtenido)
+            id_revisor: selectedRevisor         // ID del revisor
+        });
+
+        // Verificar si la respuesta fue exitosa
+        if (response.status === 200) {
+            alert('Informes actualizados y revisor asignado correctamente');
+            console.log(response.data);  // Ver en la consola la respuesta del servidor
+        } else {
+            alert('Hubo un problema al actualizar el informe. Intente nuevamente.');
+        }
     } catch (error) {
-      // Manejar errores
-      console.error('Error al asignar el revisor:', error);
-      alert('Error al asignar el revisor. ' + (error.response ? error.response.data : error.message));
+        console.error('Error al obtener los informes o asignar el revisor:', error);
+        alert('Error al obtener los informes o asignar el revisor. ' + (error.response ? error.response.data : error.message));
     }
   };
+
+  
+  
+
+  
   
 
 
@@ -512,7 +559,7 @@ function ProcesoRevisionInformes() {
           {notificaciones.length > 0 && notificaciones[0].mensaje.includes('Aprobado') &&  (
             <div>
               <h3>Informe Final</h3>
-              <form onSubmit={submitInformeFinal}>
+              <form onSubmit={handleSubmitInformeFinal}>
                 <label>Informe Final:</label>
                 <input type="file" name="final" onChange={handleFileChange} required />
                 <button type="submit">Enviar Informe Final</button>
@@ -563,7 +610,7 @@ function ProcesoRevisionInformes() {
           {notificaciones.length > 0 && notificaciones[0].mensaje.includes('Aprobado') &&  (
             <div>
               <h3>Informe Final</h3>
-              <form onSubmit={submitInformeFinalAsesoria}>
+              <form onSubmit={handleSubmitInformeFinalAsesoria}>
                 <label>Informe Final:</label>
                 <input type="file" name="finalAsesoria" onChange={handleFileChange} required />
                 <button type="submit">Enviar Informe Final</button>
@@ -650,7 +697,7 @@ function ProcesoRevisionInformes() {
                   <td style={{ padding: '8px', border: '1px solid #ddd' }}>
                     <button
                       onClick={() =>
-                        handleAssignRevisor(informe.id_estudiante, informe.id_asesor, informe.informe_avance, informe.informe_asesoria, selectedRevisor)
+                        handleAssignUpdate(informe.id_estudiante, informe.id_asesor, informe.informe_avance, informe.informe_asesoria, selectedRevisor)
                       }
                     >
                       Asignar

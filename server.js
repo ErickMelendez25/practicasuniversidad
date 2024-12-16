@@ -462,6 +462,115 @@
 
   //COMISION---------------------------------------------------------------------------------------
 
+  // Ruta GET para obtener informe_final basado en el id_estudiante
+  app.get('/api/informeFinal/:idEstudiante', (req, res) => {
+    const { idEstudiante } = req.params;
+
+    // Suponemos que hay una columna fecha_creacion para ordenar por fecha
+    const query = `SELECT informe_final FROM informes_final WHERE id_estudiante = ? ORDER BY fecha_creacion DESC LIMIT 1`;
+
+    db.query(query, [idEstudiante], (err, result) => {
+        if (err) {
+            console.error('Error al obtener el informe final:', err);
+            return res.status(500).send('Error al obtener el informe final');
+        }
+
+        if (result.length > 0) {
+            return res.status(200).json({ informe_final: result[0].informe_final });
+        } else {
+            return res.status(404).send('Informe final no encontrado');
+        }
+    });
+  });
+
+  // Ruta GET para obtener informe_final_asesoria basado en el id_asesor
+  app.get('/api/informeFinalAsesoria/:idAsesor', (req, res) => {
+    const { idAsesor } = req.params;
+
+    // Suponemos que hay una columna fecha_creacion para ordenar por fecha
+    const query = `SELECT informe_final_asesoria FROM informes_finalasesoria WHERE id_asesor = ? ORDER BY fecha_creacion DESC LIMIT 1`;
+
+    db.query(query, [idAsesor], (err, result) => {
+        if (err) {
+            console.error('Error al obtener el informe final de asesoría:', err);
+            return res.status(500).send('Error al obtener el informe final de asesoría');
+        }
+
+        if (result.length > 0) {
+            return res.status(200).json({ informe_final_asesoria: result[0].informe_final_asesoria });
+        } else {
+            return res.status(404).send('Informe final de asesoría no encontrado');
+        }
+    });
+  });
+
+
+
+
+  
+
+  app.put('/api/asignar_actualizar', (req, res) => {
+    // Desestructuración de los datos recibidos en la solicitud
+    const { id_estudiante, id_asesor, informe_final, informe_final_asesoria, id_revisor } = req.body;
+
+    // Verificar que todos los campos necesarios existan
+    if (!id_estudiante || !id_asesor || !informe_final || !informe_final_asesoria || !id_revisor) {
+        return res.status(400).send('Faltan campos requeridos');
+    }
+
+    // Definir los valores de estado que se van a actualizar
+    const estadoAvance = 'Pendiente';  
+    const estadoAsesoria = 'Pendiente';
+
+    // SQL para actualizar los informes en las tablas informes_final e informes_finalAsesoria
+    const queryInformesFinal = `
+      UPDATE informes_final 
+      SET informe_final = ?, estado = ? 
+      WHERE id_estudiante = ?
+    `;
+ 
+    const queryInformesFinalAsesoria = `
+      UPDATE informes_finalAsesoria
+      SET informe_final_asesoria = ?, estado = ? 
+      WHERE id_asesor = ?
+    `;
+ 
+    // SQL para insertar en la tabla informes_revisados
+    const queryInformesRevisados = `
+      INSERT INTO informes_revisados (id_estudiante, id_asesor, informe_final, informe_final_asesoria, estado_final_informe, estado_final_asesoria, id_revisor, fecha_creacion)
+      VALUES (?, ?, ?, ?, 'Pendiente', 'Pendiente', ?, NOW())
+    `;
+
+    // Ejecutar la actualización en la tabla informes_final
+    db.query(queryInformesFinal, [informe_final, estadoAvance, id_estudiante], (err, result) => {
+        if (err) {
+            console.error('Error al actualizar informe final:', err);
+            return res.status(500).send('Error al actualizar informe final');
+        }
+
+        // Ejecutar la actualización en la tabla informes_finalAsesoria
+        db.query(queryInformesFinalAsesoria, [informe_final_asesoria, estadoAsesoria, id_asesor], (err, result) => {
+            if (err) {
+                console.error('Error al actualizar informe final de asesoría:', err);
+                return res.status(500).send('Error al actualizar informe final de asesoría');
+            }
+
+            // Insertar en la tabla informes_revisados
+            db.query(queryInformesRevisados, [id_estudiante, id_asesor, informe_final, informe_final_asesoria, id_revisor], (err, result) => {
+                if (err) {
+                    console.error('Error al insertar en informes revisados:', err);
+                    return res.status(500).send('Error al insertar en informes revisados');
+                }
+
+                // Si todo es exitoso
+                res.status(200).send('Informes actualizados y revisor asignado correctamente');
+            });
+        });
+    });
+  });
+
+  
+
   // Obtener informes de estudiantes y asesores que tienen ambos informes aprobados
   app.get('/api/informes/comision', (req, res) => {
     const query = `
@@ -503,38 +612,47 @@
   });
 
   // Asignar revisor y actualizar estados de los informes
-  app.post('/api/asignarRevisor', (req, res) => {
-    const {
-      id_estudiante, 
-      id_asesor, 
-      informe_final, 
-      informe_final_asesoria, 
-      estado_informe_avance, 
-      estado_informe_asesoria, 
-      id_revisor
-    } = req.body;
-  
-    // Verificar que los campos requeridos estén presentes
-    if (!id_estudiante || !id_asesor || !id_revisor) {
-      return res.status(400).send('Faltan campos requeridos');
-    }
-  
-    // Consulta para insertar los datos en la tabla `informes_revisados`
-    const query = `
-      INSERT INTO informes_revisados 
-      (id_estudiante, id_asesor, informe_final, informe_final_asesoria, estado_informe_avance, estado_informe_asesoria, id_revisor)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `;
-  
-    // Ejecutar la consulta para insertar los datos
-    db.query(query, [id_estudiante, id_asesor, informe_final, informe_final_asesoria, estado_informe_avance, estado_informe_asesoria, id_revisor], (err, result) => {
-      if (err) {
-        console.error('Error al asignar el revisor:', err);
-        return res.status(500).send('Error al asignar el revisor');
+  app.post('/api/asignarRevisor', upload.fields([
+    { name: 'informe_final' }, 
+    { name: 'informe_final_asesoria' }
+  ]), (req, res) => {
+      const {
+          id_estudiante, 
+          id_asesor, 
+          id_revisor
+      } = req.body;
+
+      // Obtener los archivos
+      const informe_final = req.files['informe_final'] ? req.files['informe_final'][0] : null;
+      const informe_final_asesoria = req.files['informe_final_asesoria'] ? req.files['informe_final_asesoria'][0] : null;
+
+      // Verificar que los campos requeridos estén presentes
+      if (!id_estudiante || !id_asesor || !id_revisor || !informe_final) {
+          return res.status(400).send('Faltan campos requeridos');
       }
-      res.status(200).send('Revisor asignado correctamente');
+
+      // Consulta para insertar los datos en la base de datos
+      const query = `
+          INSERT INTO informes_revisados 
+          (id_estudiante, id_asesor, informe_final, informe_final_asesoria, id_revisor)
+          VALUES (?, ?, ?, ?, ?)
+      `;
+
+      // Ejecutar la consulta para insertar los datos
+      db.query(query, [
+          id_estudiante, 
+          id_asesor, 
+          informe_final, 
+          informe_final_asesoria, 
+          id_revisor
+      ], (err, result) => {
+          if (err) {
+              console.error('Error al asignar el revisor:', err);
+              return res.status(500).send('Error al asignar el revisor');
+          }
+          res.status(200).send('Revisor asignado correctamente');
+      });
     });
-  });
   
 
   // Obtener informes relacionados de asesoria y avance para la comisión
