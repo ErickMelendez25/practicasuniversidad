@@ -3,7 +3,7 @@ import axios from 'axios';
 
 function ProcesoRevisionInformes() {
   const [userRole, setUserRole] = useState(null);
-  const [informes, setInformes] = useState([]);
+  
   const [estado, setEstado] = useState({});
   const [comentarios, setComentarios] = useState({});
   const [notificaciones, setNotificaciones] = useState([]);  // Para las notificaciones
@@ -37,12 +37,74 @@ function ProcesoRevisionInformes() {
   const [revisores, setRevisores] = useState([]);
   const [selectedRevisor, setSelectedRevisores] = useState('');
 
+  // Estado para los revisoresssssssssssssss informes_revisadoss
+  const [informes, setInformes] = useState([]);
+  const [estadoInforme, setEstadoInforme] = useState({});
+  
+ 
+
+
   
 
   // Inicializa un estado que tendrá los estados por id_estudiante
   const [estadoComision, setEstadoComision] = useState({});
 
   const user = JSON.parse(localStorage.getItem('usuario'));
+
+
+  //aqui se cambio..................................
+
+  const handleChangeEstado = (id, tipo, e) => {
+    // Actualiza el estado del informe según el tipo (informe o asesoría)
+    setEstadoInforme(prev => ({
+        ...prev,
+        [id]: {
+            ...prev[id],
+            [tipo]: e.target.value
+        }
+    }));
+  };
+
+
+  //esto se agrego---------------------------------------p
+  const handleValidar = (id) => {
+    const { estado_final_informe, estado_final_asesoria } = estadoInforme[id];
+    axios.put('http://localhost:5000/api/actualizarEstado', {
+        id_informe: id,
+        estado_final_informe,
+        estado_final_asesoria
+    })
+    .then(() => {
+        alert('Informe actualizado correctamente');
+    })
+    .catch((error) => {
+        console.error('Error al actualizar el informe:', error);
+    });
+  };
+  //:................................................
+
+  const handleRevisorValida = (id) => {
+    const estadoFinalInforme = estadoInforme[id] || 'Pendiente';
+    const estadoFinalAsesoria = estadoAsesoria[id] || 'Pendiente';
+
+    axios.put('http://localhost:5000/api/actualizarEstado', {
+      id_informe: id,
+      estado_final_informe: estadoFinalInforme,
+      estado_final_asesoria: estadoFinalAsesoria,
+    })
+      .then(() => {
+        alert('Informe actualizado correctamente');
+        // Actualizar la lista de informes
+        setInformes(informes.map(informe =>
+          informe.id === id
+            ? { ...informe, estado_final_informe: estadoFinalInforme, estado_final_asesoria: estadoFinalAsesoria }
+            : informe
+        ));
+      })
+      .catch((error) => {
+        console.error('Error al actualizar el informe:', error);
+      });
+  };
 
   
 
@@ -94,6 +156,49 @@ function ProcesoRevisionInformes() {
         });
     }
   }, [user]);
+
+  
+
+  useEffect(() => {
+    if (user && userRole === 'revisor') {
+        const idRevisor = user.id_revisor; // Asegúrate de que esta propiedad exista
+        if (idRevisor) {
+            axios.get(`http://localhost:5000/api/informesRevisados?id_revisor=${idRevisor}`, {
+                timeout: 10000
+            })
+            .then((response) => {
+                setInformes(response.data);
+            
+
+             // Inicializa el estado de cada informe en el primer renderizado
+             const initialEstado = {};
+             response.data.forEach(informe => {
+                 initialEstado[informe.id] = {
+                     estado_final_informe: informe.estado_final_informe,
+                     estado_final_asesoria: informe.estado_final_asesoria
+                 };
+             });
+             setEstadoInforme(initialEstado);
+            })
+
+            
+
+
+            .catch((error) => {
+                console.error('Error al obtener los informes:', error);
+                if (error.response && error.response.status === 403) {
+                    alert('Acceso denegado. Verifique su rol de usuario.');
+                } else if (error.response && error.response.status === 404) {
+                    alert('No se encontraron informes para el revisor.');
+                }
+            });
+        } else {
+            console.error('ID de revisor no definido.');
+            alert('No se pudo obtener el ID del revisor.');
+        }
+    }
+  }, [user, userRole]);
+
 
   // Obtención de notificaciones
   useEffect(() => {
@@ -214,10 +319,13 @@ function ProcesoRevisionInformes() {
 
 
   //INFORME FINAL HABILITADO PARA VISTA DE Estudiante
+
+  
   
 
   const handleFileChange = (e) => {
     // Verificar qué archivo se ha seleccionado y actualizar el estado adecuado
+    
     if (e.target.name === "avance") {
       setAvanceFile(e.target.files[0]);
     } else if (e.target.name === "asesoria") {
@@ -717,6 +825,92 @@ function ProcesoRevisionInformes() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+
+
+      {userRole === 'revisor' && (
+        <div>
+        <h3>Informes Revisados</h3>
+        {informes.length === 0 ? (
+          <p>No hay informes para revisar.</p>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th>ID Estudiante</th>
+                <th>ID Asesor</th>
+                <th>Informe Final</th>
+                <th>Informe de Asesoría</th>
+                <th>Estado Informe Final</th>
+                <th>Estado Asesoría</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {informes
+                .sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion)) // Ordenar por fecha_creacion (de más reciente a más antiguo)
+                .map(informe => (
+                  <tr key={informe.id} style={{ borderBottom: '1px solid #ddd' }}>
+                    <td>{informe.id_estudiante}</td>
+                    <td>{informe.id_asesor}</td>
+
+                    {/* Enlaces a los archivos de Informe Final y Informe de Asesoría */}
+                    <td>
+                      <a href={`http://localhost:5000/uploads/${informe.informe_final}`} target="_blank" rel="noopener noreferrer">
+                        Ver archivo
+                      </a>
+                    </td>
+                    <td>
+                      <a href={`http://localhost:5000/uploads/${informe.informe_final_asesoria}`} target="_blank" rel="noopener noreferrer">
+                        Ver archivo
+                      </a>
+                    </td>
+
+                    {/* Select para estado del informe final */}
+                    <td>
+                      <select
+                        value={estadoInforme[informe.id]?.estado_final_informe || 'Pendiente'}
+                        onChange={(e) => handleChangeEstado(informe.id, 'estado_final_informe', e)}
+                      >
+                        <option value="Pendiente">Pendiente</option>
+                        <option value="Aprobado">Aprobado</option>
+                        <option value="Rechazado">Rechazado</option>
+                      </select>
+                    </td>
+
+                    {/* Select para estado de asesoría */}
+                    <td>
+                      <select
+                        value={estadoInforme[informe.id]?.estado_final_asesoria || 'Pendiente'}
+                        onChange={(e) => handleChangeEstado(informe.id, 'estado_final_asesoria', e)}
+                      >
+                        <option value="Pendiente">Pendiente</option>
+                        <option value="Aprobado">Aprobado</option>
+                        <option value="Rechazado">Rechazado</option>
+                      </select>
+                    </td>
+
+                    {/* Botón para reportar a comisión */}
+                    <td>
+                      {estadoInforme[informe.id]?.estado_final_informe !== informe.estado_final_informe || 
+                        estadoInforme[informe.id]?.estado_final_asesoria !== informe.estado_final_asesoria ? (
+                          <button onClick={() => handleReportarComision(informe.id)}>
+                            Reportar a Comisión
+                          </button>
+                      ) : null}
+                      {/* Botón para validar */}
+                      <button onClick={() => handleRevisorValida(informe.id)}>
+                        A comision
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+
+          )}
         </div>
       )}
     </div>

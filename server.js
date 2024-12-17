@@ -65,99 +65,128 @@
   const generateToken = (user) => {
     const payload = { correo: user.correo, rol: user.rol };
     return jwt.sign(payload, 'secreta', { expiresIn: '1h' });
+    
   };
+
+  //LOGIN---------------------------------------------------------------------------------------------
 
   app.post('/login', (req, res) => {
     const { correo, password } = req.body;
-  
+
     if (!correo || !password) {
-      return res.status(400).json({ message: 'Correo y contraseña son requeridos' });
+        return res.status(400).json({ message: 'Correo y contraseña son requeridos' });
     }
-  
+
     // Verifica el usuario en la tabla usuarios
     db.query('SELECT * FROM usuarios WHERE correo = ?', [correo], (err, result) => {
-      if (err) {
-        console.error('Error al consultar el usuario:', err);
-        return res.status(500).json({ message: 'Error en el servidor' });
-      }
-  
-      if (result.length === 0) {
-        return res.status(404).json({ message: 'Usuario no encontrado' });
-      }
-  
-      const user = result[0];
-  
-      bcrypt.compare(password, user.password, (err, isMatch) => {
         if (err) {
-          console.error('Error al comparar las contraseñas:', err);
-          return res.status(500).json({ message: 'Error en el servidor' });
+            console.error('Error al consultar el usuario:', err);
+            return res.status(500).json({ message: 'Error en el servidor' });
         }
-  
-        if (!isMatch) {
-          return res.status(400).json({ message: 'Contraseña incorrecta' });
+
+        if (result.length === 0) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
         }
-  
-        // Aquí buscamos si el usuario es asesor
-        
-  
-        if (user.rol === 'asesor') {
-          // Si el rol es 'asesor', buscamos el id_asesor en la tabla asesores
-          db.query('SELECT id FROM asesores WHERE correo = ?', [user.correo], (err, asesorResult) => {
+
+        const user = result[0];
+
+        bcrypt.compare(password, user.password, (err, isMatch) => {
             if (err) {
-              console.error('Error al consultar el asesor:', err);
-              return res.status(500).json({ message: 'Error en el servidor' });
-            }
-  
-            // Si se encuentra el asesor, asignamos el id_asesor
-            const id_asesor = asesorResult.length > 0 ? asesorResult[0].id : null;
-  
-            // Ahora buscamos el id del estudiante
-            db.query('SELECT id FROM estudiantes WHERE correo = ?', [user.correo], (err, studentResult) => {
-              if (err) {
-                console.error('Error al consultar el estudiante:', err);
+                console.error('Error al comparar las contraseñas:', err);
                 return res.status(500).json({ message: 'Error en el servidor' });
-              }
-  
-              const id_estudiante = studentResult.length > 0 ? studentResult[0].id : null;
-  
-              // Generamos el token y enviamos la respuesta
-              const token = generateToken(user);
-              res.status(200).json({
-                message: 'Login exitoso',
-                token,
-                usuario: {
-                  correo: user.correo,
-                  rol: user.rol,
-                  id_estudiante: id_estudiante,  // Incluye id_estudiante aquí
-                  id_asesor: id_asesor  // Incluye id_asesor aquí
-                }
-              });
-            });
-          });
-        } else {
-          // Si no es un asesor, solo obtenemos el id del estudiante
-          db.query('SELECT id FROM estudiantes WHERE correo = ?', [user.correo], (err, studentResult) => {
-            if (err) {
-              console.error('Error al consultar el estudiante:', err);
-              return res.status(500).json({ message: 'Error en el servidor' });
             }
-  
-            const id_estudiante = studentResult.length > 0 ? studentResult[0].id : null;
-  
-            const token = generateToken(user);
-            res.status(200).json({
-              message: 'Login exitoso',
-              token,
-              usuario: {
-                correo: user.correo,
-                rol: user.rol,
-                id_estudiante: id_estudiante,  // Incluye id_estudiante aquí
-                id_asesor: null  // En caso de que no sea un asesor
-              }
-            });
-          });
-        }
-      });
+
+            if (!isMatch) {
+                return res.status(400).json({ message: 'Contraseña incorrecta' });
+            }
+
+            // Inicializa las variables de ID
+            let id_estudiante = null;
+            let id_asesor = null;
+            let id_revisor = null;
+
+            // Manejo según rol
+            if (user.rol === 'revisor') {
+                db.query('SELECT id FROM revisores WHERE correo = ?', [user.correo], (err, revisorResult) => {
+                    if (err) {
+                        console.error('Error al consultar el revisor:', err);
+                        return res.status(500).json({ message: 'Error en el servidor' });
+                    }
+
+                    id_revisor = revisorResult.length > 0 ? revisorResult[0].id : null;
+
+                    // Generamos el token y enviamos la respuesta
+                    const token = generateToken(user);
+                    res.status(200).json({
+                        message: 'Login exitoso',
+                        token,
+                        usuario: {
+                            correo: user.correo,
+                            rol: user.rol,
+                            id_estudiante: null,
+                            id_asesor: null,
+                            id_revisor: id_revisor
+                        }
+                    });
+                });
+            } else if (user.rol === 'asesor') {
+                db.query('SELECT id FROM asesores WHERE correo = ?', [user.correo], (err, asesorResult) => {
+                    if (err) {
+                        console.error('Error al consultar el asesor:', err);
+                        return res.status(500).json({ message: 'Error en el servidor' });
+                    }
+
+                    id_asesor = asesorResult.length > 0 ? asesorResult[0].id : null;
+
+                    // Ahora buscamos el id del estudiante
+                    db.query('SELECT id FROM estudiantes WHERE correo = ?', [user.correo], (err, studentResult) => {
+                        if (err) {
+                            console.error('Error al consultar el estudiante:', err);
+                            return res.status(500).json({ message: 'Error en el servidor' });
+                        }
+
+                        id_estudiante = studentResult.length > 0 ? studentResult[0].id : null;
+
+                        // Generamos el token y enviamos la respuesta
+                        const token = generateToken(user);
+                        res.status(200).json({
+                            message: 'Login exitoso',
+                            token,
+                            usuario: {
+                                correo: user.correo,
+                                rol: user.rol,
+                                id_estudiante: id_estudiante,
+                                id_asesor: id_asesor,
+                                id_revisor: null
+                            }
+                        });
+                    });
+                });
+            } else {
+                // Si no es ni revisor ni asesor, solo obtenemos el id del estudiante
+                db.query('SELECT id FROM estudiantes WHERE correo = ?', [user.correo], (err, studentResult) => {
+                    if (err) {
+                        console.error('Error al consultar el estudiante:', err);
+                        return res.status(500).json({ message: 'Error en el servidor' });
+                    }
+
+                    id_estudiante = studentResult.length > 0 ? studentResult[0].id : null;
+
+                    const token = generateToken(user);
+                    res.status(200).json({
+                        message: 'Login exitoso',
+                        token,
+                        usuario: {
+                            correo: user.correo,
+                            rol: user.rol,
+                            id_estudiante: id_estudiante,
+                            id_asesor: null,
+                            id_revisor: null
+                        }
+                    });
+                });
+            }
+        });
     });
   });
   
@@ -398,6 +427,84 @@
       res.status(200).json(result);
     });
   });
+
+  //REVISORRRRRRRR-------------------------------------------------------------------------------------------
+  app.get('/api/informesRevisados', (req, res) => {
+    const { id_revisor } = req.query;  // Obtener el id_revisor desde la query string
+
+    // Asegúrate de que el revisor esté autenticado y su rol sea 'revisor'
+    if (!id_revisor) {
+        return res.status(403).send('Acceso denegado');
+    }
+
+    // Consulta SQL para obtener los informes más recientes para cada combinación de id_estudiante e id_asesor
+    const query = `
+    SELECT
+        informe_revisado.id AS id_informe,
+        informe_revisado.id_estudiante,
+        informe_revisado.id_asesor,
+        informe_revisado.informe_final,
+        informe_revisado.informe_final_asesoria,
+        informe_revisado.estado_final_informe,
+        informe_revisado.estado_final_asesoria,
+        informe_revisado.id_revisor,
+        informe_revisado.fecha_creacion
+    FROM
+        informes_revisados informe_revisado
+    WHERE
+        informe_revisado.id_revisor = ?  -- Filtramos por el id_revisor
+        AND informe_revisado.fecha_creacion = (
+            SELECT MAX(i.fecha_creacion)
+            FROM informes_revisados i
+            WHERE
+                i.id_estudiante = informe_revisado.id_estudiante
+                AND i.id_asesor = informe_revisado.id_asesor
+                AND i.id_revisor = informe_revisado.id_revisor
+        )
+    ORDER BY
+        informe_revisado.fecha_creacion DESC;
+    `;
+
+    // Ejecutar la consulta SQL
+    db.query(query, [id_revisor], (err, result) => {
+        if (err) {
+            console.error('Error al obtener los informes revisados:', err);
+            return res.status(500).send('Error al obtener los informes revisados');
+        }
+
+        if (result.length > 0) {
+            return res.status(200).json(result); // Enviar los datos de los informes revisados
+        } else {
+            return res.status(404).send('No se encontraron informes revisados');
+        }
+    });
+  });
+
+
+
+  
+
+  // Ruta PUT para actualizar los estados del informe
+  app.put('/api/actualizarEstado', (req, res) => {
+    const { id_informe, estado_final_informe, estado_final_asesoria } = req.body;
+
+    const query = `
+      UPDATE informes_revisados
+      SET estado_final_informe = ?, estado_final_asesoria = ?
+      WHERE id = ?
+    `;
+
+    db.query(query, [estado_final_informe, estado_final_asesoria, id_informe], (err, result) => {
+      if (err) {
+        console.error('Error al actualizar el informe:', err);
+        return res.status(500).send('Error al actualizar el informe');
+      }
+      res.status(200).send('Informe actualizado correctamente');
+    });
+  });
+
+
+
 
 
 
