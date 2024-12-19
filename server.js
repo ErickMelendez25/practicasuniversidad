@@ -15,7 +15,7 @@
 
   const app = express();
   // Definir el puerto (puedes configurar esto en el archivo .env)
-  const port = process.env.PORT || 5000;
+  const port = process.env.PORT || 8080;
 
   // Servir los archivos estáticos generados por Vite
   app.use(express.static(path.join(__dirname, 'dist')));
@@ -57,11 +57,11 @@
 
   // Configuración de la base de datos
   const db = mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost', // Localhost si estás en desarrollo
-    user: process.env.DB_USERNAME || 'Erick', // Nombre de usuario
-    password: process.env.DB_PASSWORD || 'erickMV123@', // Contraseña
-    database: process.env.DB_DATABASE || 'universidad_continental', // Nombre de base de datos
-    port: process.env.DB_PORT || 3306, // Puerto
+    host: process.env.DB_HOST,  // Usar el host desde las variables de entorno
+    user: process.env.DB_USERNAME,  // Usar el usuario de la base de datos
+    password: process.env.DB_PASSWORD,  // Usar la contraseña de la base de datos
+    database: process.env.DB_DATABASE,  // Usar el nombre de la base de datos
+    port: process.env.DB_PORT || 15597,  // Puerto, por defecto 3306
   });
 
   db.connect((err) => {
