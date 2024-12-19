@@ -11,7 +11,14 @@
   const __dirname = path.resolve();
 
   const app = express();
-  const port = 5000;
+  const port = process.env.PORT || 8080;  //5000;
+
+  // Servir los archivos estáticos generados por Vite
+  app.use(express.static(path.join(__dirname, 'dist')));
+
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  });
 
   
 
@@ -46,10 +53,11 @@
 
   // Configuración de la base de datos
   const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'Erick',
-    password: 'erickMV123@',
-    database: 'universidad_continental'
+    host: process.env.DB_HOST, // Usar la variable de entorno MYSQL_HOST
+    user: process.env.DB_USER, // Usar la variable de entorno MYSQL_USER
+    password: process.env.DB_PASSWORD, // Usar la variable de entorno MYSQL_PASSWORD
+    database: process.env.DB_NAME, // Usar la variable de entorno MYSQL_DATABASE
+    port: process.env.DB_PORT || 3306 
   });
 
   db.connect((err) => {
@@ -68,14 +76,7 @@
     
   };
 
-  ////CONEXION AL INTEX DIRECTAMENTE-------------------------------------------------------------------
-  app.use(express.static(path.join(__dirname, 'dist'))); // Asegúrate de que 'dist' es la carpeta generada
-
-  // Enviar el archivo HTML de React cuando se accede a la raíz
-  app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html')); // Esto es importante para que React Router maneje las rutas
-  });
-
+  
   //LOGIN---------------------------------------------------------------------------------------------
 
   app.post('/login', (req, res) => {

@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "deploy": "gh-pages -d dist",
+    "preview": "vite preview",
+    "predeploy": "npm run build",
+    "start": "node server.js"
   },
   "dependencies": {
     "axios": "^1.7.7",
