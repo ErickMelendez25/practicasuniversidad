@@ -15,7 +15,7 @@
 
   const app = express();
   // Definir el puerto (puedes configurar esto en el archivo .env)
-  const port = process.env.PORT || 8080;
+  const port = process.env.PORT || 3000;
 
   // Servir los archivos estáticos generados por Vite
   app.use(express.static(path.join(__dirname, 'dist')));
@@ -55,14 +55,10 @@
   // Servir archivos estáticos desde la carpeta 'uploads'
   app.use('/uploads', express.static(uploadDirectory));
 
+  const mysqlUrl = process.env.MYSQL_PUBLIC_URL || 'mysql://root:gQgbGLlAHqewoMwlKnFUWmMEYfhAWQfY@autorack.proxy.rlwy.net:15597/railway';
+  
   // Configuración de la base de datos
-  const db = mysql.createConnection({
-    host: process.env.DB_HOST,  // Usar el host desde las variables de entorno
-    user: process.env.DB_USERNAME,  // Usar el usuario de la base de datos
-    password: process.env.DB_PASSWORD,  // Usar la contraseña de la base de datos
-    database: process.env.DB_DATABASE,  // Usar el nombre de la base de datos
-    port: process.env.DB_PORT || 15597,  // Puerto, por defecto 3306
-  });
+  const db = mysql.createConnection(mysqlUrl);
 
   db.connect((err) => {
     if (err) {
