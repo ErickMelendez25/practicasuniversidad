@@ -6,32 +6,17 @@
   import path from 'path';
   import fs from 'fs';
   import jwt from 'jsonwebtoken';
-  import dotenv from 'dotenv';
-
-  dotenv.config(); 
 
   // Obtener la ruta del directorio actual (corregido para Windows)
   const __dirname = path.resolve();
 
   const app = express();
-  // Definir el puerto (puedes configurar esto en el archivo .env)
-  const port = process.env.PORT || 5000;
-
-
-  // Servir los archivos estáticos generados por Vite
-  app.use(express.static(path.join(__dirname, 'dist')));
-
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-  });
+  const port = 5000;
 
   
 
   app.use(express.json());
-  app.use(cors({
-    origin: process.env.REACT_APP_API_URL, // Asegúrate de que la URL esté configurada correctamente
-    methods: ['GET', 'POST'],
-  }));
+  app.use(cors());
 
   // Verificar si la carpeta 'uploads' existe, si no, crearla
   const uploadDirectory = path.join(__dirname, 'uploads');
@@ -59,12 +44,12 @@
   // Servir archivos estáticos desde la carpeta 'uploads'
   app.use('/uploads', express.static(uploadDirectory));
 
+  // Configuración de la base de datos
   const db = mysql.createConnection({
-    host: process.env.DB_HOST,  // Usamos el host de la base de datos proporcionado por Railway
-    user: process.env.DB_USERNAME,  // El usuario de la base de datos
-    password: process.env.DB_PASSWORD,  // La contraseña de la base de datos
-    database: process.env.DB_DATABASE,  // El nombre de la base de datos
-    port: process.env.DB_PORT,  // Puerto, en Railway es el puerto por defecto 3306
+    host: 'localhost',
+    user: 'Erick',
+    password: 'erickMV123@',
+    database: 'universidad_continental'
   });
 
   db.connect((err) => {
@@ -83,7 +68,8 @@
     
   };
 
-  
+  ////CONEXION
+
   //LOGIN---------------------------------------------------------------------------------------------
 
   app.post('/login', (req, res) => {

@@ -12,19 +12,16 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
 
+    // Agregar los console.log aquí para depurar los valores de usuario y contraseña
     console.log("Correo:", username);  // Muestra el correo ingresado
     console.log("Contraseña:", password);  // Muestra la contraseña ingresada
 
     try {
-      // Usamos la URL de la API desde la variable de entorno
-      const apiUrl = process.env.REACT_APP_API_URL;
-
-      const response = await axios.post(`${apiUrl}/login`, {
+      const response = await axios.post('http://localhost:5000/login', {
         correo: username,
         password: password,
       });
 
-      // Guardamos el token y usuario en localStorage
       localStorage.setItem('authToken', response.data.token);
       localStorage.setItem('usuario', JSON.stringify(response.data.usuario));  // Aquí guardamos "usuario"
 
