@@ -68,6 +68,14 @@
     
   };
 
+  ////CONEXION AL INTEX DIRECTAMENTE-------------------------------------------------------------------
+  app.use(express.static(path.join(__dirname, 'dist'))); // Asegúrate de que 'dist' es la carpeta generada
+
+  // Enviar el archivo HTML de React cuando se accede a la raíz
+  app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html')); // Esto es importante para que React Router maneje las rutas
+  });
+
   //LOGIN---------------------------------------------------------------------------------------------
 
   app.post('/login', (req, res) => {
