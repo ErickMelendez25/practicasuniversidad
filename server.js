@@ -6,12 +6,16 @@
   import path from 'path';
   import fs from 'fs';
   import jwt from 'jsonwebtoken';
+  import dotenv from 'dotenv';
+
+  dotenv.config(); 
 
   // Obtener la ruta del directorio actual (corregido para Windows)
   const __dirname = path.resolve();
 
   const app = express();
-  const port = process.env.PORT || 8080;  //5000;
+  // Definir el puerto (puedes configurar esto en el archivo .env)
+  const port = process.env.PORT || 5000;
 
   // Servir los archivos estáticos generados por Vite
   app.use(express.static(path.join(__dirname, 'dist')));
@@ -53,11 +57,11 @@
 
   // Configuración de la base de datos
   const db = mysql.createConnection({
-    host: process.env.DB_HOST, // Usar la variable de entorno MYSQL_HOST
-    user: process.env.DB_USER, // Usar la variable de entorno MYSQL_USER
-    password: process.env.DB_PASSWORD, // Usar la variable de entorno MYSQL_PASSWORD
-    database: process.env.DB_NAME, // Usar la variable de entorno MYSQL_DATABASE
-    port: process.env.DB_PORT || 3306 
+    host: process.env.DB_HOST || 'localhost', // Localhost si estás en desarrollo
+    user: process.env.DB_USERNAME || 'Erick', // Nombre de usuario
+    password: process.env.DB_PASSWORD || 'erickMV123@', // Contraseña
+    database: process.env.DB_DATABASE || 'universidad_continental', // Nombre de base de datos
+    port: process.env.DB_PORT || 3306, // Puerto
   });
 
   db.connect((err) => {
