@@ -15,7 +15,8 @@
 
   const app = express();
   // Definir el puerto (puedes configurar esto en el archivo .env)
-  const port = process.env.PORT || 3000;
+  const port = process.env.PORT || 5000;
+
 
   // Servir los archivos estáticos generados por Vite
   app.use(express.static(path.join(__dirname, 'dist')));
@@ -27,7 +28,10 @@
   
 
   app.use(express.json());
-  app.use(cors());
+  app.use(cors({
+    origin: process.env.REACT_APP_API_URL, // Asegúrate de que la URL esté configurada correctamente
+    methods: ['GET', 'POST'],
+  }));
 
   // Verificar si la carpeta 'uploads' existe, si no, crearla
   const uploadDirectory = path.join(__dirname, 'uploads');
@@ -55,10 +59,13 @@
   // Servir archivos estáticos desde la carpeta 'uploads'
   app.use('/uploads', express.static(uploadDirectory));
 
-  const mysqlUrl = process.env.MYSQL_PUBLIC_URL || 'mysql://root:gQgbGLlAHqewoMwlKnFUWmMEYfhAWQfY@autorack.proxy.rlwy.net:15597/railway';
-  
-  // Configuración de la base de datos
-  const db = mysql.createConnection(mysqlUrl);
+  const db = mysql.createConnection({
+    host: process.env.DB_HOST,  // Usamos el host de la base de datos proporcionado por Railway
+    user: process.env.DB_USERNAME,  // El usuario de la base de datos
+    password: process.env.DB_PASSWORD,  // La contraseña de la base de datos
+    database: process.env.DB_DATABASE,  // El nombre de la base de datos
+    port: process.env.DB_PORT,  // Puerto, en Railway es el puerto por defecto 3306
+  });
 
   db.connect((err) => {
     if (err) {
