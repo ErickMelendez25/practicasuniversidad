@@ -220,6 +220,103 @@
     });
   });
 
+
+  ////PROCESO 3-----------------------------------------------------------------------------------------------------
+  // Ruta para obtener las prácticas
+  // API para obtener inscripciones
+// API para obtener inscripciones
+  app.get('/api/inscripciones', (req, res) => {
+    const query = `
+      SELECT p.*, e.correo
+      FROM inscripciones_emisiones p
+      JOIN estudiantes e ON p.id_estudiante = e.id
+      ORDER BY p.fecha_creacion DESC;
+    `;
+
+    db.query(query, (err, result) => {
+        if (err) {
+            console.error('Error al ejecutar la consulta:', err);
+            res.status(500).send('Error al obtener los datos de las prácticas');
+            return;
+        }
+        res.json(result);
+    });
+  });
+
+
+  // API para insertar inscripciones
+  app.post('/api/inscripcion_emision', upload.fields([
+    { name: 'solicitud', maxCount: 1 },
+    { name: 'ficha', maxCount: 1 }, // Cambié planPracticas a ficha
+    { name: 'informe', maxCount: 1 } // Agregué este campo para el informe final
+  ]), (req, res) => {
+    const { id_estudiante, comentarios } = req.body;
+
+    if (!id_estudiante) {
+        return res.status(400).json({ message: 'El ID del estudiante es requerido' });
+    }
+
+    if (!req.files || !req.files.solicitud || !req.files.ficha || !req.files.informe) {
+        return res.status(400).json({ message: 'Todos los archivos son necesarios' });
+    }
+
+    // Solo almacena los nombres de los archivos, no las rutas absolutas
+    const solicitud = req.files.solicitud[0].filename;
+    const ficha_revision = req.files.ficha[0].filename; // Asegúrate de tener este archivo
+    const informe_final = req.files.informe[0].filename; // Asegúrate de tener este archivo
+
+    const estadoFinal = 'Pendiente'; // O cualquier lógica que necesites
+
+    db.query('INSERT INTO inscripciones_emisiones (id_estudiante, solicitud_inscripcion_emision, ficha_revision, informe_final, estado_proceso, comentarios) VALUES (?, ?, ?, ?, ?, ?)', 
+      [id_estudiante, solicitud, ficha_revision, informe_final, estadoFinal, comentarios], 
+      (err, result) => {
+        if (err) {
+            console.error('Error al guardar en la base de datos:', err);
+            return res.status(500).json({ message: 'Error al guardar en la base de datos' });
+        }
+        res.status(200).json({ message: 'Prácticas enviadas con éxito' });
+    });
+  });
+
+
+  // Ruta para actualizar el estado de la inscripción
+  app.put('/api/actualizar_inscripcion', (req, res) => {
+    const { id_inscripcion, estado } = req.body;
+
+    if (!id_inscripcion || !estado) {
+        return res.status(400).json({ message: 'El ID de la inscripción y el estado son requeridos' });
+    }
+
+    try {
+        db.query('UPDATE inscripciones_emisiones SET estado_proceso = ? WHERE id = ?', [estado, id_inscripcion], async (err, result) => {
+            if (err) {
+                console.error('Error al actualizar el estado:', err);
+                return res.status(500).json({ message: 'Error al actualizar el estado' });
+            }
+
+            // Verificar si se actualizó alguna fila
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ message: 'Inscripción no encontrada' });
+            }
+
+            // Obtener el ID del estudiante asociado a la inscripción
+            const [inscripcion] = await db.promise().query('SELECT id_estudiante FROM inscripciones_emisiones WHERE id = ?', [id_inscripcion]);
+            const { id_estudiante } = inscripcion[0];
+
+            // Enviar notificación al estudiante
+            const mensaje = `El estado de tu inscripción ha cambiado a: ${estado}`;
+            await db.promise().query('INSERT INTO notificaciones (id_estudiante, mensaje) VALUES (?, ?)', [id_estudiante, mensaje]);
+
+            res.status(200).json({ message: 'Estado actualizado y notificación enviada' });
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al actualizar el estado', error: error.message });
+    }
+});
+    
+  
+  ///------------------------------------------------------------------------------------------------------------
+
   // Ruta para registrar la práctica (subir los archivos y agregar estado)
   app.post('/api/practicas', upload.fields([
     { name: 'solicitud', maxCount: 1 },

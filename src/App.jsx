@@ -7,6 +7,8 @@ import Login from './components/Login';
 import VistaOpcion from './components/VistaOpcion';
 import ProcesoInscripcion from './pages/PracticasPreprofesionales/ProcesoInscripcion'; // Componente específico para Inscripción
 import ProcesoRevisionInformes from './pages/PracticasPreprofesionales/ProcesoRevisionInformes'; // Componente específico para Inscripción
+import ProcesoInscripcionCertificado from './pages/PracticasPreprofesionales/ProcesoInscripcionCertificado'; // Componente específico para Inscripción
+import ProcesoFusion from './pages/PracticasPreprofesionales/ProcesoFusion'; // Componente específico para Inscripción
 // Importar los procesos de admisión desde el archivo de exportación
 import { Proceso1, Proceso2, Proceso3 } from './pages/Admision/ProcesosAdmision'; // Importación única
 
@@ -65,8 +67,8 @@ function App() {
           {/* Ruta específica para 'Revisión e inscripción del plan' */}
           <Route path="revision-inscripcion" element={<ProtectedRoute element={<ProcesoInscripcion />} />} />
           <Route path="revision-informes" element={<ProtectedRoute element={<ProcesoRevisionInformes />} />} />
-          <Route path="informefinal-certificado" element={<ProtectedRoute element={<ProcesoInscripcion />} />} />
-          <Route path="Convalidación-experiencialaboral" element={<ProtectedRoute element={<ProcesoInscripcion />} />} />
+          <Route path="informefinal-certificado" element={<ProtectedRoute element={<ProcesoInscripcionCertificado />} />} />
+          <Route path="Convalidación-experiencialaboral" element={<ProtectedRoute element={<ProcesoFusion />} />} />
 
           {/* Rutas específicas para 'Admision' con diferentes procesos */}
           <Route path="proceso-1" element={<ProtectedRoute element={<Proceso1 />} />} />
