@@ -14,7 +14,7 @@
   const __dirname = path.resolve();
 
   const app = express();
-  const port = 5000;
+  const port= process.env.PORT || 5000;
 
   
 
@@ -1322,6 +1322,6 @@ app.put('/api/actualizacion_informe', (req, res) => {
   });
 
 
-  app.listen(port, () => {
+  app.listen(port, '0.0.0.0', () => {
     console.log(`Servidor corriendo en http://localhost:${port}`);
   });
