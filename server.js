@@ -17,6 +17,15 @@
 
   const app = express();
   const port= process.env.PORT || 5000;
+  // Configura CORS para permitir solicitudes solo desde tu frontend
+  const corsOptions = {
+    origin: 'https://practicasuniversidad-production.up.railway.app/', // Dominio de tu frontend
+    methods: 'GET, POST, PUT, DELETE', // Métodos permitidos
+    allowedHeaders: 'Content-Type, Authorization', // Headers permitidos
+  };
+
+  // Aplica la configuración de CORS
+  app.use(cors(corsOptions));
 
   
 
@@ -24,7 +33,7 @@
 
   app.use(express.json());
   // Configura CORS
-  app.use(cors());
+  
 
   // Verificar si la carpeta 'uploads' existe, si no, crearla
   const uploadDirectory = path.join(__dirname, 'uploads');
