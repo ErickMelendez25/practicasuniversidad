@@ -27,24 +27,29 @@ function ProcesoInscripcion() {
 
     if (user && (user.rol === 'secretaria' || user.rol === 'comision')) {
       // Obtener las prácticas solo una vez
-      axios.get(`${apiUrl}/practicas`)
+      axios.get(`${apiUrl}/api/practicas`)
         .then((response) => {
-          console.log(response.data); // Imprime toda la respuesta para depurar
-          const practicasData = response.data.data || response.data;
+          console.log(response.data); // Verifica qué está llegando
       
-          // Verifica si practicasData es un objeto o un arreglo
-          if (Array.isArray(practicasData)) {
-            setPracticas(practicasData);
-          } else if (typeof practicasData === 'object') {
-            setPracticas([practicasData]); // Convierte a un arreglo si es un solo objeto
-          } else {
-            console.error('Error: practicasData no es un objeto ni un arreglo', practicasData);
-            setPracticas([]); // Establece como vacío si no se puede procesar
+          // Aquí asumimos que response.data es un arreglo
+          const practicasData = Array.isArray(response.data) ? response.data : [];
+      
+          setPracticas(practicasData); // Establece las prácticas
+      
+          // Inicializa el estado solo si practicasData tiene elementos
+          if (practicasData.length > 0 && Object.keys(estado).length === 0) {
+            const initialEstado = {};
+            practicasData.forEach(practica => {
+              initialEstado[practica.id] = practica.estado_proceso;
+            });
+            setEstado(initialEstado);
           }
         })
         .catch((error) => {
           console.error('Error al obtener las prácticas:', error);
+          setPracticas([]); // Establece como vacío en caso de error
         });
+      
       
     }
 
