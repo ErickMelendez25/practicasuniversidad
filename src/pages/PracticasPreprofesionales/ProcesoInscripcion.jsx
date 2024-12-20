@@ -17,7 +17,7 @@ function ProcesoInscripcion() {
 
   const apiUrl = process.env.NODE_ENV === 'production'
   ? 'https://practicasuniversidad-production.up.railway.app/api'
-  : 'http://localhost:5000/api';
+  : 'http://localhost:5000';
 
 
   useEffect(() => {
@@ -27,7 +27,7 @@ function ProcesoInscripcion() {
 
     if (user && (user.rol === 'secretaria' || user.rol === 'comision')) {
       // Obtener las prácticas solo una vez
-      axios.get('${apiUrl}/practicas')
+      axios.get(`${apiUrl}/practicas`)
         .then((response) => {
           console.log(response.data);  // Verifica qué está llegando de la API
           setPracticas(response.data);
@@ -79,7 +79,7 @@ function ProcesoInscripcion() {
     formData.append('id_estudiante', user.id_estudiante);
 
     try {
-      await axios.post('${apiUrl}/api/practicas', formData, {
+      await axios.post(`${apiUrl}/api/practicas`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -107,7 +107,7 @@ function ProcesoInscripcion() {
   };
 
   const handleUpdateState = (idPractica, estadoSeleccionado) => {
-    axios.put('${apiUrl}/actualizar-estado', {
+    axios.put(`${apiUrl}/actualizar-estado`, {
       idPractica,
       estado: estadoSeleccionado
     })
@@ -131,7 +131,7 @@ function ProcesoInscripcion() {
       return;
     }
 
-    axios.post('${apiUrl}/comentarios', {
+    axios.post(`${apiUrl}/comentarios`, {
       idPractica,
       comentario
     })
