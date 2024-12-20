@@ -170,7 +170,7 @@ function ProcesoInscripcion() {
           </form>
 
           <h3>Notificaciones</h3>
-          {notificaciones.length > 0 ? (
+          {Array.isArray(notificaciones) && notificaciones.length > 0 ? (
             <ul>
               {notificaciones.map((noti, index) => (
                 <li key={index}>{noti.mensaje}</li>
