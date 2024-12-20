@@ -422,7 +422,7 @@
   });
 
   // Ruta para obtener las prácticas
-  app.get('/api/practicas', (req, res) => {
+  app.get('/api/practicas', (db, res) => {
     const query = `
       SELECT p.*, e.correo
       FROM practicas p
