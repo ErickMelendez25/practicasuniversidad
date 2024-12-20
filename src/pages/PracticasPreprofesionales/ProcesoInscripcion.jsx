@@ -18,8 +18,6 @@ function ProcesoInscripcion() {
     : 'http://localhost:5000';
 
   useEffect(() => {
-
-    const token = localStorage.getItem('token');
     if (user) {
       setUserRole(user.rol);
     }
@@ -29,9 +27,7 @@ function ProcesoInscripcion() {
       axios.get(`${apiUrl}/api/practicas`)
         .then((response) => {
           console.log(response.data); // Verifica qué está llegando
-          const practicasData = Array.isArray(response.data.data) ? response.data.data : [];
-          
-          localStorage.setItem('authToken', response.data.token);
+          const practicasData = Array.isArray(response.data) ? response.data : response.data.data || [];
           console.log(practicasData); // Verifica el contenido
           setPracticas(practicasData);
           
