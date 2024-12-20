@@ -12,6 +12,14 @@ function ProcesoInscripcion() {
 
   const user = JSON.parse(localStorage.getItem('usuario'));
 
+
+  // Definir la URL de la API dependiendo del entorno (producción o desarrollo)
+
+  const apiUrl = process.env.NODE_ENV === 'production'
+  ? 'https://practicasuniversidad-production.up.railway.app/api'
+  : 'http://localhost:5000/api';
+
+
   useEffect(() => {
     if (user) {
       setUserRole(user.rol);
@@ -19,7 +27,7 @@ function ProcesoInscripcion() {
 
     if (user && (user.rol === 'secretaria' || user.rol === 'comision')) {
       // Obtener las prácticas solo una vez
-      axios.get('http://localhost:5000/api/practicas')
+      axios.get('${apiUrl}/practicas')
         .then((response) => {
           setPracticas(response.data);
 
@@ -39,7 +47,7 @@ function ProcesoInscripcion() {
 
     if (user && user.rol === 'estudiante') {
       // Obtener notificaciones para el estudiante
-      axios.get(`http://localhost:5000/api/notificaciones?id_estudiante=${user.id_estudiante}`)
+      axios.get(`${apiUrl}/api/notificaciones?id_estudiante=${user.id_estudiante}`)
         .then((response) => {
           setNotificaciones(response.data);
         })
@@ -70,7 +78,7 @@ function ProcesoInscripcion() {
     formData.append('id_estudiante', user.id_estudiante);
 
     try {
-      await axios.post('http://localhost:5000/api/practicas', formData, {
+      await axios.post('${apiUrl}/api/practicas', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -98,7 +106,7 @@ function ProcesoInscripcion() {
   };
 
   const handleUpdateState = (idPractica, estadoSeleccionado) => {
-    axios.put('http://localhost:5000/api/actualizar-estado', {
+    axios.put('${apiUrl}/actualizar-estado', {
       idPractica,
       estado: estadoSeleccionado
     })
@@ -122,7 +130,7 @@ function ProcesoInscripcion() {
       return;
     }
 
-    axios.post('http://localhost:5000/api/comentarios', {
+    axios.post('${apiUrl}/comentarios', {
       idPractica,
       comentario
     })
@@ -194,8 +202,8 @@ function ProcesoInscripcion() {
                   <tr key={practica.id}>
                     <td>{practica.id_estudiante}</td>
                     <td>{practica.correo}</td>
-                    <td><a href={`http://localhost:5000/uploads/${practica.solicitud_inscripcion}`} target="_blank">Ver archivo</a></td>
-                    <td><a href={`http://localhost:5000/uploads/${practica.plan_practicas}`} target="_blank">Ver archivo</a></td>
+                    <td><a href={`${apiUrl}/uploads/${practica.solicitud_inscripcion}`} target="_blank">Ver archivo</a></td>
+                    <td><a href={`${apiUrl}/uploads/${practica.plan_practicas}`} target="_blank">Ver archivo</a></td>
                     <td>
                       <select
                         value={estado[practica.id] || 'Pendiente'} // Mantener el estado en el componente
@@ -242,8 +250,8 @@ function ProcesoInscripcion() {
                   <tr key={practica.id}>
                     <td>{practica.id_estudiante}</td>
                     <td>{practica.correo}</td>
-                    <td><a href={`http://localhost:5000/uploads/${practica.solicitud_inscripcion}`} target="_blank">Ver archivo</a></td>
-                    <td><a href={`http://localhost:5000/uploads/${practica.plan_practicas}`} target="_blank">Ver archivo</a></td>
+                    <td><a href={`${apiUrl}/uploads/${practica.solicitud_inscripcion}`} target="_blank">Ver archivo</a></td>
+                    <td><a href={`${apiUrl}/uploads/${practica.plan_practicas}`} target="_blank">Ver archivo</a></td>
                     <td>
                       <textarea
                         value={comentarios[practica.id] || ''}
