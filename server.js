@@ -48,15 +48,16 @@
   app.use('/uploads', express.static(uploadDirectory));
 
   // Configuración de la base de datos
-  const connection = mysql.createConnection({
+  const db = mysql.createConnection({
     host: process.env.DB_HOST,         // Usamos las variables de entorno
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT,         // Puerto de la base de datos
     database: process.env.DB_NAME      // Nombre de la base de datos
+    
   });
 
-  connection.connect((err) => {
+  db.connect((err) => {
     if (err) {
       console.error('Error al conectar a la base de datos:', err.stack);
       return;
