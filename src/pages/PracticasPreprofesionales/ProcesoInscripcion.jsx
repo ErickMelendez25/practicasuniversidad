@@ -29,13 +29,14 @@ function ProcesoInscripcion() {
       // Obtener las prácticas solo una vez
       axios.get(`${apiUrl}/practicas`)
         .then((response) => {
-          console.log(response.data);  // Verifica qué está llegando de la API
-          setPracticas(response.data);
-
+          const practicasData = response.data.data || response.data;  // Accede a los datos correctamente
+          console.log(practicasData);  // Verifica qué está llegando de la API
+          setPracticas(practicasData);
+      
           // Inicializar los estados de las prácticas solo si es la primera vez que las cargamos
           if (Object.keys(estado).length === 0) {
             const initialEstado = {};
-            response.data.forEach(practica => {
+            practicasData.forEach(practica => {
               initialEstado[practica.id] = practica.estado_proceso;
             });
             setEstado(initialEstado);
@@ -107,7 +108,7 @@ function ProcesoInscripcion() {
   };
 
   const handleUpdateState = (idPractica, estadoSeleccionado) => {
-    axios.put(`${apiUrl}/actualizar-estado`, {
+    axios.put(`${apiUrl}/api/actualizar-estado`, {
       idPractica,
       estado: estadoSeleccionado
     })
@@ -131,7 +132,7 @@ function ProcesoInscripcion() {
       return;
     }
 
-    axios.post(`${apiUrl}/comentarios`, {
+    axios.post(`${apiUrl}/api/comentarios`, {
       idPractica,
       comentario
     })
