@@ -27,7 +27,7 @@ function ProcesoInscripcion() {
       axios.get(`${apiUrl}/api/practicas`)
         .then((response) => {
           console.log(response.data); // Verifica qué está llegando
-          const practicasData = Array.isArray(response.data) ? response.data : response.data.data || [];
+          const practicasData = Array.isArray(response.data.data) ? response.data.data : [];
           console.log(practicasData); // Verifica el contenido
           setPracticas(practicasData);
           
