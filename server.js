@@ -421,15 +421,15 @@
       });
   });
 
-  // Ruta para obtener las prácticas
-  app.get('/api/practicas', (db, res) => {
+// Ruta para obtener las prácticas
+  app.get('/api/practicas', (req, res) => {
     const query = `
       SELECT p.*, e.correo
       FROM practicas p
       JOIN estudiantes e ON p.id_estudiante = e.id
       ORDER BY p.fecha_creacion DESC;
     `;
-  
+
     db.query(query, (err, result) => {
       if (err) {
         console.error('Error al ejecutar la consulta:', err);

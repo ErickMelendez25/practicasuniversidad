@@ -52,6 +52,14 @@ function ProcesoRevisionInformes() {
   const user = JSON.parse(localStorage.getItem('usuario'));
 
 
+    // Definir la URL de la API dependiendo del entorno (producción o desarrollo)
+
+    const apiUrl = process.env.NODE_ENV === 'production'
+    ? 'https://practicasuniversidad-production.up.railway.app'
+    : 'http://localhost:5000';
+  
+
+
   //aqui se cambio..................................
 
   const handleChangeEstado = (id, tipo, e) => {

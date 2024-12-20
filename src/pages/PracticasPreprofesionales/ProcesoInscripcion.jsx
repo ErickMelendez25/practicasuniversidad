@@ -24,23 +24,23 @@ function ProcesoInscripcion() {
     if (user && (user.rol === 'secretaria' || user.rol === 'comision')) {
       // Obtener las prácticas solo una vez
       axios.get(`${apiUrl}/api/practicas`)
-      .then((response) => {
-        console.log(response.data); // Verifica qué está llegando
-        const practicasData = Array.isArray(response.data) ? response.data : response.data.data || [];
-        console.log(practicasData); // Verifica el contenido
-        setPracticas(practicasData);
-        
-        if (practicasData.length > 0) {
-          const initialEstado = {};
-          practicasData.forEach(practica => {
-            initialEstado[practica.id] = practica.estado_proceso;
-          });
-          setEstado(initialEstado);
-        }
-      })
-      .catch((error) => {
-        console.error('Error al obtener las prácticas:', error);
-      });
+        .then((response) => {
+          console.log(response.data); // Verifica qué está llegando
+          const practicasData = Array.isArray(response.data) ? response.data : response.data.data || [];
+          console.log(practicasData); // Verifica el contenido
+          setPracticas(practicasData);
+          
+          if (practicasData.length > 0) {
+            const initialEstado = {};  
+            practicasData.forEach(practica => {
+              initialEstado[practica.id] = practica.estado_proceso;
+            });
+            setEstado(initialEstado);
+          }
+        })
+        .catch((error) => {
+          console.error('Error al obtener las prácticas:', error);
+        });
     }
 
     if (user && user.rol === 'estudiante') {
