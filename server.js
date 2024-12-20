@@ -24,9 +24,7 @@
 
   app.use(express.json());
   // Configura CORS
-  app.use(cors({
-    origin: '*',  // Permitir solicitudes de todos los orígenes
-  }));
+  app.use(cors());
 
   // Verificar si la carpeta 'uploads' existe, si no, crearla
   const uploadDirectory = path.join(__dirname, 'uploads');
