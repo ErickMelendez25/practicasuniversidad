@@ -239,6 +239,7 @@
             res.status(500).send('Error al obtener los datos de las prácticas');
             return;
         }
+        
         res.json(result);
     });
   });
@@ -288,6 +289,7 @@
     }
 
     try {
+        // Actualizar el estado de la inscripción en la base de datos
         db.query('UPDATE inscripciones_emisiones SET estado_proceso = ? WHERE id = ?', [estado, id_inscripcion], async (err, result) => {
             if (err) {
                 console.error('Error al actualizar el estado:', err);
@@ -310,9 +312,47 @@
             res.status(200).json({ message: 'Estado actualizado y notificación enviada' });
         });
     } catch (error) {
+        console.error('Error al actualizar el estado:', error);
         res.status(500).json({ message: 'Error al actualizar el estado', error: error.message });
     }
-});
+  });
+
+
+  // Endpoint para subir el certificado
+  // Endpoint para subir el certificado
+  app.post('/api/certificado', upload.single('certificado'), (req, res) => {
+    const { id_estudiante, correo } = req.body;
+    const certificadoFile = req.file;
+
+    // Verificar si los parámetros son válidos
+    if (!id_estudiante || !correo || !certificadoFile) {
+        return res.status(400).json({ error: 'Faltan parámetros: id_estudiante, correo, o el archivo.' });
+    }
+
+    // Obtener la ruta del archivo subido
+    const certificadoPath = certificadoFile.path;  // Ruta del archivo subido
+    console.log('Certificado subido con éxito:', certificadoPath);
+
+    // Crear la consulta SQL para insertar el certificado en la base de datos
+    const query = `
+        INSERT INTO certificados_practicas (id_estudiante, correo, certificado_practicas)
+        VALUES (?, ?, ?)
+    `;
+
+    // Ejecutar la consulta SQL
+    db.query(query, [id_estudiante, correo, certificadoPath], (err, results) => {
+        if (err) {
+            console.error('Error al insertar el certificado:', err);
+            return res.status(500).json({ error: 'Error al insertar el certificado en la base de datos.', details: err.message });
+        }
+        console.log('Certificado insertado exitosamente:', results);
+
+        // Enviar respuesta al cliente
+        res.status(200).json({ message: 'Certificado enviado exitosamente.' });
+    });
+  });
+
+
     
   
   ///------------------------------------------------------------------------------------------------------------

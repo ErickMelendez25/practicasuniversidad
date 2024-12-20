@@ -67,7 +67,7 @@ function App() {
           {/* Ruta específica para 'Revisión e inscripción del plan' */}
           <Route path="revision-inscripcion" element={<ProtectedRoute element={<ProcesoInscripcion />} />} />
           <Route path="revision-informes" element={<ProtectedRoute element={<ProcesoRevisionInformes />} />} />
-          <Route path="informefinal-certificado" element={<ProtectedRoute element={<ProcesoInscripcionCertificado />} />} />
+          <Route path="informefinal-certificado" element={<ProtectedRoute element={<ProcesoFusion />} />} />
           <Route path="Convalidación-experiencialaboral" element={<ProtectedRoute element={<ProcesoFusion />} />} />
 
           {/* Rutas específicas para 'Admision' con diferentes procesos */}

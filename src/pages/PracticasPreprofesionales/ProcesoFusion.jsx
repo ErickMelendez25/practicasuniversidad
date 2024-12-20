@@ -7,9 +7,12 @@ function ProcesoFusion() {
     const [estado, setEstado] = useState({});
     const [comentarios, setComentarios] = useState({});
     const [notificaciones, setNotificaciones] = useState([]);
-    const [solicitudFile, setSolicitudFile] = useState(null);
-    const [fichaFile, setFichaFile] = useState(null);
-    const [informeFile, setInformeFile] = useState(null);
+    const [certificadoFile, setCertificadoFile] = useState(null);
+    const [files, setFiles] = useState({
+        solicitud: null,
+        ficha: null,
+        informe: null,
+    });
     const user = JSON.parse(localStorage.getItem('usuario'));
 
     useEffect(() => {
@@ -46,42 +49,40 @@ function ProcesoFusion() {
     }, [user, estado]);
 
     const handleFileChange = (e) => {
-        if (e.target.name === "solicitud") {
-            setSolicitudFile(e.target.files[0]);
-        } else if (e.target.name === "ficha") {
-            setFichaFile(e.target.files[0]);
-        } else if (e.target.name === "informe") {
-            setInformeFile(e.target.files[0]);
+        if (e.target.name === "certificado") {
+            setCertificadoFile(e.target.files[0]);
+        } else {
+            setFiles((prevFiles) => ({
+                ...prevFiles,
+                [e.target.name]: e.target.files[0],
+            }));
         }
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmitEstudiante = (e) => {
         e.preventDefault();
-        if (!solicitudFile || !fichaFile || !informeFile) {
-            alert('Todos los archivos son requeridos');
-            return;
-        }
         const formData = new FormData();
-        formData.append('solicitud', solicitudFile);
-        formData.append('ficha', fichaFile);
-        formData.append('informe', informeFile);
+        formData.append('solicitud', files.solicitud);
+        formData.append('ficha', files.ficha);
+        formData.append('informe', files.informe);
         formData.append('id_estudiante', user.id_estudiante);
 
-        try {
-            await axios.post('http://localhost:5000/api/inscripcion_emision', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-            alert('Documentos enviados exitosamente');
-            // Resetear archivos después de enviar
-            setSolicitudFile(null);
-            setFichaFile(null);
-            setInformeFile(null);
-        } catch (error) {
-            console.error('Error al enviar documentos:', error);
-            alert('Error al enviar documentos');
-        }
+        axios.post('http://localhost:5000/api/inscripcion_emision', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+            .then(() => {
+                alert('Archivos enviados correctamente');
+                setFiles({
+                    solicitud: null,
+                    ficha: null,
+                    informe: null,
+                });
+            })
+            .catch((error) => {
+                console.error('Error al enviar los archivos:', error);
+                alert('Error al enviar los archivos');
+            });
     };
 
     const handleEstadoChange = (id, e) => {
-        // Solo actualizamos el estado local sin interferir con el valor en la base de datos
         setEstado((prevEstado) => ({ ...prevEstado, [id]: e.target.value }));
     };
 
@@ -90,22 +91,20 @@ function ProcesoFusion() {
     };
 
     const handleUpdateState = (idInscripcion, estadoSeleccionado) => {
-      axios.put('http://localhost:5000/api/actualizar_inscripcion', { 
-          id_inscripcion: idInscripcion, 
-          estado: estadoSeleccionado 
-      })
-      .then(() => {
-          alert('Estado actualizado');
-          // Después de actualizar el estado en la base de datos, actualizamos el estado local
-          setEstado((prevEstado) => ({ ...prevEstado, [idInscripcion]: estadoSeleccionado }));
-      })
-      .catch((error) => {
-          alert('Error al actualizar el estado');
-      });
-  };
+        axios.put('http://localhost:5000/api/actualizar_inscripcion', {
+            id_inscripcion: idInscripcion,
+            estado: estadoSeleccionado
+        })
+        .then(() => {
+            alert('Estado actualizado');
+            setEstado((prevEstado) => ({ ...prevEstado, [idInscripcion]: estadoSeleccionado }));
+        })
+        .catch((error) => {
+            alert('Error al actualizar el estado');
+        });
+    };
 
     const handleComentarioSubmit = (idInscripcion, comentario) => {
-        // Validar que el comentario no esté vacío
         if (!comentario.trim()) {
             alert('Por favor, ingrese un comentario antes de enviar.');
             return;
@@ -113,7 +112,6 @@ function ProcesoFusion() {
         axios.post('http://localhost:5000/api/comentarios', { idInscripcion, comentario })
             .then(() => {
                 alert('Comentario enviado');
-                // Actualizamos el comentario en el estado local
                 setComentarios((prevComentarios) => ({ ...prevComentarios, [idInscripcion]: comentario }));
             })
             .catch((error) => {
@@ -122,13 +120,34 @@ function ProcesoFusion() {
             });
     };
 
+    const handleSubmitCertificado = (idEstudiante, correo) => {
+        if (!certificadoFile) {
+            alert('Por favor, selecciona un archivo para subir.');
+            return;
+        }
+        const formData = new FormData();
+        formData.append('certificado', certificadoFile);
+        formData.append('id_estudiante', idEstudiante);
+        formData.append('correo', correo);
+
+        axios.post('http://localhost:5000/api/certificado', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+            .then(() => {
+                alert('Certificado enviado exitosamente');
+                setCertificadoFile(null);  // Limpiar el archivo después de enviar
+            })
+            .catch((error) => {
+                console.error('Error al enviar el certificado:', error.response || error);
+                alert('Error al enviar el certificado');
+            });
+    };
+
     return (
-        <div>
+        <div style={{ padding: '20px', overflowX: 'auto' }}>
             {/* Vista Estudiante */}
             {userRole === 'estudiante' && (
                 <div>
                     <h3>Formulario de Inscripción</h3>
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmitEstudiante}>
                         <label>
                             Solicitud de Inscripción:
                             <input type="file" name="solicitud" onChange={handleFileChange} required />
@@ -158,13 +177,13 @@ function ProcesoFusion() {
                     )}
                 </div>
             )}
-            
+
             {/* Vista Secretaria */}
             {userRole === 'secretaria' && (
                 <div>
                     <h3>Lista de Inscripciones</h3>
                     {inscripciones.length > 0 ? (
-                        <table>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', overflowX: 'auto' }}>
                             <thead>
                                 <tr>
                                     <th>ID Estudiante</th>
@@ -174,6 +193,8 @@ function ProcesoFusion() {
                                     <th>Informe Final</th>
                                     <th>Estado Proceso</th>
                                     <th>Acciones</th>
+                                    <th>Subir Certificado</th>
+                                    <th>Enviar Certificado</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -197,17 +218,36 @@ function ProcesoFusion() {
 
                                         {/* Botón para actualizar el estado */}
                                         <td><button onClick={() => handleUpdateState(inscripcion.id, estado[inscripcion.id])}>Actualizar</button></td>
-                                    </tr>))}
+
+                                        {/* Solo si el estado es Aprobada, agregar columnas para subir el certificado */}
+                                        {estado[inscripcion.id] === 'Aprobada' && (
+                                            <>
+                                                <td>
+                                                    <input type="file" name="certificado" onChange={handleFileChange} />
+                                                </td>
+                                                <td>
+                                                    <button onClick={() => handleSubmitCertificado(inscripcion.id_estudiante, inscripcion.correo)}>
+                                                        Enviar Certificado
+                                                    </button>
+                                                </td>
+                                            </>
+                                        )}
+                                    </tr>
+                                ))}
                             </tbody>
-                        </table>) : (<p>No hay inscripciones registradas.</p>)}
-                </div>)}
+                        </table>
+                    ) : (
+                        <p>No hay inscripciones registradas.</p>
+                    )}
+                </div>
+            )}
 
             {/* Vista Comisión */}
             {userRole === 'comision' && (
                 <div>
                     <h3>Prácticas Derivadas a Comisión</h3>
                     {inscripciones.filter(inscripcion => inscripcion.estado_proceso === 'Derivada a Comisión').length > 0 ? (
-                        <table>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', overflowX: 'auto' }}>
                             <thead>
                                 <tr>
                                     <th>ID Estudiante</th>
@@ -220,25 +260,39 @@ function ProcesoFusion() {
                                     <th>Actualizar Estado</th>
                                 </tr>
                             </thead>
-                            <tbody>{inscripciones.filter(inscripcion => inscripcion.estado_proceso === 'Derivada a Comisión').map((inscripcion) => (
-                                <tr key={inscripcion.id}>
-                                    <td>{inscripcion.id_estudiante}</td>
-                                    <td>{inscripcion.correo}</td>
-                                    <td><a href={`http://localhost:5000/uploads/${inscripcion.solicitud_inscripcion_emision}`} target="_blank">Ver archivo</a></td>
-                                    <td><a href={`http://localhost:5000/uploads/${inscripcion.ficha_revision}`} target="_blank">Ver archivo</a></td>
-                                    <td><a href={`http://localhost:5000/uploads/${inscripcion.informe_final}`} target="_blank">Ver archivo</a></td>
-
-                                    {/* Comentarios y estado */}
-                                    <td><textarea value={comentarios[inscripcion.id] || ''} onChange={(e) => handleComentarioChange(inscripcion.id, e)} placeholder="Agregar comentario" /></td>
-
-                                    {/* Estado de la inscripción */}
-                                    <td><select value={estado[inscripcion.id] || 'Pendiente'} onChange={(e) => handleEstadoChange(inscripcion.id, e)}>
-                                        <option value="Pendiente"></option><option value="Aprobada">Aprobada</option><option value="Rechazada">Rechazada</option></select></td>
-
-                                    {/* Acciones para la comisión */}
-                                    <td><button onClick={() => handleComentarioSubmit(inscripcion.id, comentarios[inscripcion.id])}>Enviar Comentario</button><button onClick={() => handleUpdateState(inscripcion.id, estado[inscripcion.id])}>Actualizar</button></td></tr>))}</tbody></table>) : (<p>No hay prácticas derivadas a la Comisión.</p>)}
-                </div>)}
-        </div>);
+                            <tbody>
+                                {inscripciones.filter(inscripcion => inscripcion.estado_proceso === 'Derivada a Comisión').map((inscripcion) => (
+                                    <tr key={inscripcion.id}>
+                                        <td>{inscripcion.id_estudiante}</td>
+                                        <td>{inscripcion.correo}</td>
+                                        <td><a href={`http://localhost:5000/uploads/${inscripcion.solicitud_inscripcion_emision}`} target="_blank">Ver archivo</a></td>
+                                        <td><a href={`http://localhost:5000/uploads/${inscripcion.ficha_revision}`} target="_blank">Ver archivo</a></td>
+                                        <td><a href={`http://localhost:5000/uploads/${inscripcion.informe_final}`} target="_blank">Ver archivo</a></td>
+                                        <td>
+                                            <textarea value={comentarios[inscripcion.id] || ''} onChange={(e) => handleComentarioChange(inscripcion.id, e)} placeholder="Agregar comentario" />
+                                        </td>
+                                        <td>
+                                            <select value={estado[inscripcion.id] || 'Pendiente'} onChange={(e) => handleEstadoChange(inscripcion.id, e)}>
+                                                <option value="Pendiente">Pendiente</option>
+                                                <option value="Aprobada">Aprobada</option>
+                                                <option value="Rechazada">Rechazada</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <button onClick={() => handleComentarioSubmit(inscripcion.id, comentarios[inscripcion.id])}>Enviar Comentario</button>
+                                            <button onClick={() => handleUpdateState(inscripcion.id, estado[inscripcion.id])}>Actualizar</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <p>No hay prácticas derivadas a la Comisión.</p>
+                    )}
+                </div>
+            )}
+        </div>
+    );
 }
 
 export default ProcesoFusion;
