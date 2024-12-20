@@ -3,7 +3,7 @@ import axios from 'axios';
 
 function ProcesoInscripcion() {
   const [userRole, setUserRole] = useState(null);
-  const [practicas, setPracticas] = useState([]);
+  const [practicas, setPracticas] = useState([]);  // Inicializa como array vacío
   const [estado, setEstado] = useState({});
   const [comentarios, setComentarios] = useState({});
   const [notificaciones, setNotificaciones] = useState([]);
@@ -29,6 +29,7 @@ function ProcesoInscripcion() {
       // Obtener las prácticas solo una vez
       axios.get('${apiUrl}/practicas')
         .then((response) => {
+          console.log(response.data);  // Verifica qué está llegando de la API
           setPracticas(response.data);
 
           // Inicializar los estados de las prácticas solo si es la primera vez que las cargamos
@@ -181,53 +182,52 @@ function ProcesoInscripcion() {
         </div>
       )}
 
-      {/* Vista Secretaria */}
-      {userRole === 'secretaria' && (
-        <div>
-          <h3>Lista de Prácticas</h3>
-          {practicas.length > 0 ? (
-            <table>
-              <thead>
-                <tr>
-                  <th>ID Estudiante</th>
-                  <th>Correo Estudiante</th>
-                  <th>Solicitud Inscripción</th>
-                  <th>Plan de Prácticas</th>
-                  <th>Estado Proceso</th>
-                  <th>Acciones</th>
+    {/* Vista Secretaria */}
+    {userRole === 'secretaria' && (
+      <div>
+        <h3>Lista de Prácticas</h3>
+        {Array.isArray(practicas) && practicas.length > 0 ? (  // Verificar si es un array y tiene elementos
+          <table>
+            <thead>
+              <tr>
+                <th>ID Estudiante</th>
+                <th>Correo Estudiante</th>
+                <th>Solicitud Inscripción</th>
+                <th>Plan de Prácticas</th>
+                <th>Estado Proceso</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {practicas.map((practica) => (
+                <tr key={practica.id}>
+                  <td>{practica.id_estudiante}</td>
+                  <td>{practica.correo}</td>
+                  <td><a href={`${apiUrl}/uploads/${practica.solicitud_inscripcion}`} target="_blank">Ver archivo</a></td>
+                  <td><a href={`${apiUrl}/uploads/${practica.plan_practicas}`} target="_blank">Ver archivo</a></td>
+                  <td>
+                    <select
+                      value={estado[practica.id] || 'Pendiente'} // Mantener el estado en el componente
+                      onChange={(e) => handleEstadoChange(practica.id, e)}
+                    >
+                      <option value="Pendiente">Pendiente</option>
+                      <option value="Aprobada">Aprobada</option>
+                      <option value="Derivada a Comisión">Derivada a Comisión</option>
+                      <option value="Rechazada">Rechazada</option>
+                    </select>
+                  </td>
+                  <td>
+                    <button onClick={() => handleUpdateState(practica.id, estado[practica.id])}>Actualizar</button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {practicas.map((practica) => (
-                  <tr key={practica.id}>
-                    <td>{practica.id_estudiante}</td>
-                    <td>{practica.correo}</td>
-                    <td><a href={`${apiUrl}/uploads/${practica.solicitud_inscripcion}`} target="_blank">Ver archivo</a></td>
-                    <td><a href={`${apiUrl}/uploads/${practica.plan_practicas}`} target="_blank">Ver archivo</a></td>
-                    <td>
-                      <select
-                        value={estado[practica.id] || 'Pendiente'} // Mantener el estado en el componente
-                        onChange={(e) => handleEstadoChange(practica.id, e)}
-                      >
-                        <option value="Pendiente">Pendiente</option>
-                        <option value="Aprobada">Aprobada</option>
-                        <option value="Derivada a Comisión">Derivada a Comisión</option>
-                        <option value="Rechazada">Rechazada</option>
-                      </select>
-                    </td>
-                    <td>
-                      <button onClick={() => handleUpdateState(practica.id, estado[practica.id])}>Actualizar</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p>No hay prácticas registradas.</p>
-          )}
-        </div>
-      )}
-
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p>No hay prácticas registradas.</p>
+        )}
+      </div>
+    )}
       {/* Vista Comisión */}
       {userRole === 'comision' && (
         <div>
