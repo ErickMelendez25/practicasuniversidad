@@ -3,7 +3,7 @@ import axios from 'axios';
 
 function ProcesoInscripcion() {
   const [userRole, setUserRole] = useState(null);
-  const [practicas, setPracticas] = useState([]);  // Inicializa como array vacío
+  const [practicas, setPracticas] = useState([]);
   const [estado, setEstado] = useState({});
   const [comentarios, setComentarios] = useState({});
   const [notificaciones, setNotificaciones] = useState([]);
@@ -12,56 +12,46 @@ function ProcesoInscripcion() {
 
   const user = JSON.parse(localStorage.getItem('usuario'));
 
-
-  // Definir la URL de la API dependiendo del entorno (producción o desarrollo)
-
-  const apiUrl = process.env.NODE_ENV === 'production'
-  ? 'https://practicasuniversidad-production.up.railway.app'
+  const apiUrl = process.env.NODE_ENV === 'production' 
+  ? 'https://practicasuniversidad-production.up.railway.app' 
   : 'http://localhost:5000';
-
 
   useEffect(() => {
     if (user) {
       setUserRole(user.rol);
-      if (user.rol === 'secretaria' || user.rol === 'comision') {
-        // Obtener las prácticas solo una vez
-        axios.get(`${apiUrl}/api/practicas`)
-          .then((response) => {
-            const practicasData = response.data; // Asegúrate de que esto sea un arreglo
-            console.log(practicasData); // Verifica qué está llegando de la API
-            
-            // Verifica si practicasData es un arreglo
-            if (Array.isArray(practicasData)) {
-              setPracticas(practicasData);
-              // Inicializar el estado solo si practicasData tiene elementos
-              if (practicasData.length > 0 && Object.keys(estado).length === 0) {
-                const initialEstado = {};
-                practicasData.forEach(practica => {
-                  initialEstado[practica.id] = practica.estado_proceso;
-                });
-                setEstado(initialEstado);
-              }
-            } else {
-              console.error('Error: practicasData no es un arreglo', practicasData);
-              setPracticas([]); // Establece como vacío si no se puede procesar
-            }
-          })
-          .catch((error) => {
-            console.error('Error al obtener las prácticas:', error);
-            setPracticas([]); // Establece como vacío en caso de error
+    }
+
+    if (user && (user.rol === 'secretaria' || user.rol === 'comision')) {
+      // Obtener las prácticas solo una vez
+      axios.get(`${apiUrl}/api/practicas`)
+      .then((response) => {
+        console.log(response.data); // Verifica qué está llegando
+        const practicasData = Array.isArray(response.data) ? response.data : response.data.data || [];
+        console.log(practicasData); // Verifica el contenido
+        setPracticas(practicasData);
+        
+        if (practicasData.length > 0) {
+          const initialEstado = {};
+          practicasData.forEach(practica => {
+            initialEstado[practica.id] = practica.estado_proceso;
           });
-      }
-  
-      if (user.rol === 'estudiante') {
-        // Obtener notificaciones para el estudiante
-        axios.get(`${apiUrl}/api/notificaciones?id_estudiante=${user.id_estudiante}`)
-          .then((response) => {
-            setNotificaciones(response.data);
-          })
-          .catch((error) => {
-            console.error('Error al obtener notificaciones', error);
-          });
-      }
+          setEstado(initialEstado);
+        }
+      })
+      .catch((error) => {
+        console.error('Error al obtener las prácticas:', error);
+      });
+    }
+
+    if (user && user.rol === 'estudiante') {
+      // Obtener notificaciones para el estudiante
+      axios.get(`http://localhost:5000/api/notificaciones?id_estudiante=${user.id_estudiante}`)
+        .then((response) => {
+          setNotificaciones(response.data);
+        })
+        .catch((error) => {
+          console.error('Error al obtener notificaciones', error);
+        });
     }
   }, [user, estado]);  // Añadimos estado como dependencia para evitar bucles infinitos
 
@@ -86,7 +76,7 @@ function ProcesoInscripcion() {
     formData.append('id_estudiante', user.id_estudiante);
 
     try {
-      await axios.post(`${apiUrl}/api/practicas`, formData, {
+      await axios.post('http://localhost:5000/api/practicas', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -114,7 +104,7 @@ function ProcesoInscripcion() {
   };
 
   const handleUpdateState = (idPractica, estadoSeleccionado) => {
-    axios.put(`${apiUrl}/api/actualizar-estado`, {
+    axios.put('http://localhost:5000/api/actualizar-estado', {
       idPractica,
       estado: estadoSeleccionado
     })
@@ -138,7 +128,7 @@ function ProcesoInscripcion() {
       return;
     }
 
-    axios.post(`${apiUrl}/api/comentarios`, {
+    axios.post('http://localhost:5000/api/comentarios', {
       idPractica,
       comentario
     })
@@ -177,7 +167,7 @@ function ProcesoInscripcion() {
           </form>
 
           <h3>Notificaciones</h3>
-          {Array.isArray(notificaciones) && notificaciones.length > 0 ? (
+          {notificaciones.length > 0 ? (
             <ul>
               {notificaciones.map((noti, index) => (
                 <li key={index}>{noti.mensaje}</li>
@@ -189,47 +179,53 @@ function ProcesoInscripcion() {
         </div>
       )}
 
-    {/* Vista Secretaria */}
-    {userRole === 'secretaria' && (
-      <div>
-        <h3>Lista de Prácticas</h3>
-        {Array.isArray(practicas) && practicas.length > 0 ? (
-          <table>
-            <thead>
-              <tr>
-                <th>ID Estudiante</th>
-                <th>Correo Estudiante</th>
-                <th>Solicitud Inscripción</th>
-                <th>Plan de Prácticas</th>
-                <th>Estado Proceso</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {practicas.map((practica) => (
-                <tr key={practica.id}>
-                  <td>{practica.id_estudiante}</td>
-                  <td>{practica.correo}</td>
-                  <td><a href={`${apiUrl}/uploads/${practica.solicitud_inscripcion}`} target="_blank">Ver archivo</a></td>
-                  <td><a href={`${apiUrl}/uploads/${practica.plan_practicas}`} target="_blank">Ver archivo</a></td>
-                  <td>
-                    <select value={estado[practica.id] || 'Pendiente'} onChange={(e) => handleEstadoChange(practica.id, e)}>
-                      <option value="Pendiente">Pendiente</option>
-                      <option value="Aprobada">Aprobada</option>
-                      <option value="Derivada a Comisión">Derivada a Comisión</option>
-                      <option value="Rechazada">Rechazada</option>
-                    </select>
-                  </td>
-                  <td><button onClick={() => handleUpdateState(practica.id, estado[practica.id])}>Actualizar</button></td>
+      {/* Vista Secretaria */}
+      {userRole === 'secretaria' && (
+        <div>
+          <h3>Lista de Prácticas</h3>
+          {practicas.length > 0 ? (
+            <table>
+              <thead>
+                <tr>
+                  <th>ID Estudiante</th>
+                  <th>Correo Estudiante</th>
+                  <th>Solicitud Inscripción</th>
+                  <th>Plan de Prácticas</th>
+                  <th>Estado Proceso</th>
+                  <th>Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p>No hay prácticas registradas.</p>
-        )}
-      </div>
-    )}
+              </thead>
+              <tbody>
+                {practicas.map((practica) => (
+                  <tr key={practica.id}>
+                    <td>{practica.id_estudiante}</td>
+                    <td>{practica.correo}</td>
+                    <td><a href={`http://localhost:5000/uploads/${practica.solicitud_inscripcion}`} target="_blank">Ver archivo</a></td>
+                    <td><a href={`http://localhost:5000/uploads/${practica.plan_practicas}`} target="_blank">Ver archivo</a></td>
+                    <td>
+                      <select
+                        value={estado[practica.id] || 'Pendiente'} // Mantener el estado en el componente
+                        onChange={(e) => handleEstadoChange(practica.id, e)}
+                      >
+                        <option value="Pendiente">Pendiente</option>
+                        <option value="Aprobada">Aprobada</option>
+                        <option value="Derivada a Comisión">Derivada a Comisión</option>
+                        <option value="Rechazada">Rechazada</option>
+                      </select>
+                    </td>
+                    <td>
+                      <button onClick={() => handleUpdateState(practica.id, estado[practica.id])}>Actualizar</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p>No hay prácticas registradas.</p>
+          )}
+        </div>
+      )}
+
       {/* Vista Comisión */}
       {userRole === 'comision' && (
         <div>
@@ -252,8 +248,8 @@ function ProcesoInscripcion() {
                   <tr key={practica.id}>
                     <td>{practica.id_estudiante}</td>
                     <td>{practica.correo}</td>
-                    <td><a href={`${apiUrl}/uploads/${practica.solicitud_inscripcion}`} target="_blank">Ver archivo</a></td>
-                    <td><a href={`${apiUrl}/uploads/${practica.plan_practicas}`} target="_blank">Ver archivo</a></td>
+                    <td><a href={`http://localhost:5000/uploads/${practica.solicitud_inscripcion}`} target="_blank">Ver archivo</a></td>
+                    <td><a href={`http://localhost:5000/uploads/${practica.plan_practicas}`} target="_blank">Ver archivo</a></td>
                     <td>
                       <textarea
                         value={comentarios[practica.id] || ''}
