@@ -7,6 +7,9 @@
   import fs from 'fs';
   import jwt from 'jsonwebtoken';
 
+  import dotenv from 'dotenv';
+  dotenv.config(); // Carga las variables de entorno desde el archivo .env
+
   // Obtener la ruta del directorio actual (corregido para Windows)
   const __dirname = path.resolve();
 
@@ -45,11 +48,12 @@
   app.use('/uploads', express.static(uploadDirectory));
 
   // Configuración de la base de datos
-  const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'Erick',
-    password: 'erickMV123@',
-    database: 'universidad_continental'
+  const connection = mysql.createConnection({
+    host: process.env.DB_HOST,         // Usamos las variables de entorno
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT,         // Puerto de la base de datos
+    database: process.env.DB_NAME      // Nombre de la base de datos
   });
 
   db.connect((err) => {
@@ -352,7 +356,7 @@
     });
   });
 
-  
+
 
 
     
