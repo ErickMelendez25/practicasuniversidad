@@ -429,14 +429,14 @@
       JOIN estudiantes e ON p.id_estudiante = e.id
       ORDER BY p.fecha_creacion DESC;
     `;
-
+  
     db.query(query, (err, result) => {
       if (err) {
         console.error('Error al ejecutar la consulta:', err);
-        res.status(500).send('Error al obtener los datos de las prácticas');
+        res.status(500).json({ error: 'Error al obtener los datos de las prácticas' });
         return;
       }
-      res.json(result);
+      res.json(result); // Asegúrate de que esto devuelva un arreglo
     });
   });
 
@@ -1337,6 +1337,6 @@ app.put('/api/actualizacion_informe', (req, res) => {
   });
 
 
-  app.listen(port, '0.0.0.0', () => {
+  app.listen(port, () => {
     console.log(`Servidor corriendo en http://localhost:${port}`);
   });
