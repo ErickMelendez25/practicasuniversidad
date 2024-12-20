@@ -29,11 +29,19 @@ function ProcesoInscripcion() {
       // Obtener las prácticas solo una vez
       axios.get(`${apiUrl}/practicas`)
         .then((response) => {
-          const practicasData = response.data.data || response.data;  // Accede a los datos correctamente
-          console.log(practicasData);  // Verifica qué está llegando de la API
-          setPracticas(practicasData);
+          const practicasData = response.data.data || response.data; // Accede a los datos correctamente
+          console.log(practicasData); // Verifica qué está llegando de la API
       
-          // Inicializar los estados de las prácticas solo si es la primera vez que las cargamos
+          if (Array.isArray(practicasData)) {
+            setPracticas(practicasData);
+          } else if (typeof practicasData === 'object') {
+            setPracticas([practicasData]); // Convierte a un arreglo si es un solo objeto
+          } else {
+            console.error('Error: practicasData no es un objeto ni un arreglo', practicasData);
+            setPracticas([]); // Establece como vacío si no se puede procesar
+          }
+      
+          // Inicializar el estado si es necesario
           if (Object.keys(estado).length === 0) {
             const initialEstado = {};
             practicasData.forEach(practica => {
