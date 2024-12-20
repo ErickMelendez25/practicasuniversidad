@@ -56,7 +56,7 @@
     database: process.env.DB_NAME      // Nombre de la base de datos
   });
 
-  db.connect((err) => {
+  connection.connect((err) => {
     if (err) {
       console.error('Error al conectar a la base de datos:', err.stack);
       return;
