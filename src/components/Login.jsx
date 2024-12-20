@@ -17,7 +17,12 @@ const Login = () => {
     console.log("Contraseña:", password);  // Muestra la contraseña ingresada
 
     try {
-      const response = await axios.post('http://localhost:5000/login', {
+      // Verifica si estás en producción (Railway) o en desarrollo (localhost)
+      const apiUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://practicasuniversidad-production.up.railway.app/login' 
+        : 'http://localhost:5000/login';
+
+      const response = await axios.post(apiUrl, {
         correo: username,
         password: password,
       });
