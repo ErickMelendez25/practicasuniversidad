@@ -11,15 +11,22 @@
   dotenv.config(); // Carga las variables de entorno desde el archivo .env
 
   // Obtener la ruta del directorio actual (corregido para Windows)
+
+
   const __dirname = path.resolve();
 
   const app = express();
   const port= process.env.PORT || 5000;
 
+  const cors = require('cors');
+
   
 
   app.use(express.json());
-  app.use(cors());
+  // Configura CORS
+  app.use(cors({
+    origin: '*',  // Permitir solicitudes de todos los orígenes
+  }));
 
   // Verificar si la carpeta 'uploads' existe, si no, crearla
   const uploadDirectory = path.join(__dirname, 'uploads');
