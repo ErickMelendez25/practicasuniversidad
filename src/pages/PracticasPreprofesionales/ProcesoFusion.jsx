@@ -15,13 +15,18 @@ function ProcesoFusion() {
     });
     const user = JSON.parse(localStorage.getItem('usuario'));
 
+      // Determinamos la URL de la API dependiendo del entorno
+    const apiUrl = process.env.NODE_ENV === 'production' 
+    ? 'https://practicasuniversidad-production.up.railway.app' 
+    : 'http://localhost:5000';
+
     useEffect(() => {
         if (user) {
             setUserRole(user.rol);
         }
         if (user && (user.rol === 'secretaria' || user.rol === 'comision')) {
             // Obtener las inscripciones solo una vez
-            axios.get('http://localhost:5000/api/inscripciones') // Asegúrate de que esta URL sea correcta
+            axios.get(`${apiUrl}/api/inscripciones`) // Asegúrate de que esta URL sea correcta
                 .then((response) => {
                     setInscripciones(response.data);
                     if (Object.keys(estado).length === 0) {
@@ -38,7 +43,7 @@ function ProcesoFusion() {
         }
         if (user && user.rol === 'estudiante') {
             // Obtener notificaciones para el estudiante
-            axios.get(`http://localhost:5000/api/notificaciones?id_estudiante=${user.id_estudiante}`)
+            axios.get(`${apiUrl}/api/notificaciones?id_estudiante=${user.id_estudiante}`)
                 .then((response) => {
                     setNotificaciones(response.data);
                 })
@@ -67,7 +72,7 @@ function ProcesoFusion() {
         formData.append('informe', files.informe);
         formData.append('id_estudiante', user.id_estudiante);
 
-        axios.post('http://localhost:5000/api/inscripcion_emision', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+        axios.post(`${apiUrl}/api/inscripcion_emision`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
             .then(() => {
                 alert('Archivos enviados correctamente');
                 setFiles({
@@ -91,7 +96,7 @@ function ProcesoFusion() {
     };
 
     const handleUpdateState = (idInscripcion, estadoSeleccionado) => {
-        axios.put('http://localhost:5000/api/actualizar_inscripcion', {
+        axios.put(`${apiUrl}/api/actualizar_inscripcion`, {
             id_inscripcion: idInscripcion,
             estado: estadoSeleccionado
         })
@@ -109,7 +114,7 @@ function ProcesoFusion() {
             alert('Por favor, ingrese un comentario antes de enviar.');
             return;
         }
-        axios.post('http://localhost:5000/api/comentarios', { idInscripcion, comentario })
+        axios.post(`${apiUrl}/api/comentarios`, { idInscripcion, comentario })
             .then(() => {
                 alert('Comentario enviado');
                 setComentarios((prevComentarios) => ({ ...prevComentarios, [idInscripcion]: comentario }));
@@ -130,7 +135,7 @@ function ProcesoFusion() {
         formData.append('id_estudiante', idEstudiante);
         formData.append('correo', correo);
 
-        axios.post('http://localhost:5000/api/certificado', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+        axios.post(`${apiUrl}/api/certificado`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
             .then(() => {
                 alert('Certificado enviado exitosamente');
                 setCertificadoFile(null);  // Limpiar el archivo después de enviar
@@ -202,9 +207,9 @@ function ProcesoFusion() {
                                     <tr key={inscripcion.id}>
                                         <td>{inscripcion.id_estudiante}</td>
                                         <td>{inscripcion.correo}</td>
-                                        <td><a href={`http://localhost:5000/uploads/${inscripcion.solicitud_inscripcion_emision}`} target="_blank">Ver archivo</a></td>
-                                        <td><a href={`http://localhost:5000/uploads/${inscripcion.ficha_revision}`} target="_blank">Ver archivo</a></td>
-                                        <td><a href={`http://localhost:5000/uploads/${inscripcion.informe_final}`} target="_blank">Ver archivo</a></td>
+                                        <td><a href={`${apiUrl}/uploads/${inscripcion.solicitud_inscripcion_emision}`} target="_blank">Ver archivo</a></td>
+                                        <td><a href={`${apiUrl}/uploads/${inscripcion.ficha_revision}`} target="_blank">Ver archivo</a></td>
+                                        <td><a href={`${apiUrl}/uploads/${inscripcion.informe_final}`} target="_blank">Ver archivo</a></td>
 
                                         {/* Estado y acciones */}
                                         <td>
@@ -265,9 +270,9 @@ function ProcesoFusion() {
                                     <tr key={inscripcion.id}>
                                         <td>{inscripcion.id_estudiante}</td>
                                         <td>{inscripcion.correo}</td>
-                                        <td><a href={`http://localhost:5000/uploads/${inscripcion.solicitud_inscripcion_emision}`} target="_blank">Ver archivo</a></td>
-                                        <td><a href={`http://localhost:5000/uploads/${inscripcion.ficha_revision}`} target="_blank">Ver archivo</a></td>
-                                        <td><a href={`http://localhost:5000/uploads/${inscripcion.informe_final}`} target="_blank">Ver archivo</a></td>
+                                        <td><a href={`${apiUrl}/uploads/${inscripcion.solicitud_inscripcion_emision}`} target="_blank">Ver archivo</a></td>
+                                        <td><a href={`${apiUrl}/uploads/${inscripcion.ficha_revision}`} target="_blank">Ver archivo</a></td>
+                                        <td><a href={`${apiUrl}/uploads/${inscripcion.informe_final}`} target="_blank">Ver archivo</a></td>
                                         <td>
                                             <textarea value={comentarios[inscripcion.id] || ''} onChange={(e) => handleComentarioChange(inscripcion.id, e)} placeholder="Agregar comentario" />
                                         </td>
