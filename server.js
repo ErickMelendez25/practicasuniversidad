@@ -779,15 +779,14 @@
   
 
   app.put('/api/asignar_actualizar', (req, res) => {
-    // Desestructuración de los datos recibidos en la solicitud
     const { id_estudiante, id_asesor, informe_final, informe_final_asesoria, id_revisor } = req.body;
 
-    // Verificar que todos los campos necesarios existan
+    console.log('Datos recibidos:', { id_estudiante, id_asesor, informe_final, informe_final_asesoria, id_revisor });
+
     if (!id_estudiante || !id_asesor || !informe_final || !informe_final_asesoria || !id_revisor) {
         return res.status(400).send('Faltan campos requeridos');
     }
 
-    // Definir los valores de estado que se van a actualizar
     const estadoAvance = 'Pendiente';  
     const estadoAsesoria = 'Pendiente';
 
@@ -797,46 +796,43 @@
       SET informe_final = ?, estado = ? 
       WHERE id_estudiante = ?
     `;
- 
+
     const queryInformesFinalAsesoria = `
       UPDATE informes_finalAsesoria
       SET informe_final_asesoria = ?, estado = ? 
       WHERE id_asesor = ?
     `;
- 
+
     // SQL para insertar en la tabla informes_revisados
     const queryInformesRevisados = `
       INSERT INTO informes_revisados (id_estudiante, id_asesor, informe_final, informe_final_asesoria, estado_final_informe, estado_final_asesoria, id_revisor, fecha_creacion)
       VALUES (?, ?, ?, ?, 'Pendiente', 'Pendiente', ?, NOW())
     `;
 
-    // Ejecutar la actualización en la tabla informes_final
     db.query(queryInformesFinal, [informe_final, estadoAvance, id_estudiante], (err, result) => {
         if (err) {
             console.error('Error al actualizar informe final:', err);
             return res.status(500).send('Error al actualizar informe final');
         }
 
-        // Ejecutar la actualización en la tabla informes_finalAsesoria
         db.query(queryInformesFinalAsesoria, [informe_final_asesoria, estadoAsesoria, id_asesor], (err, result) => {
             if (err) {
-                console.error('Error al actualizar informe final de asesoría:', err);
-                return res.status(500).send('Error al actualizar informe final de asesoría');
+                console.error('Error al actualizar informe de asesoría:', err);
+                return res.status(500).send('Error al actualizar informe de asesoría');
             }
 
-            // Insertar en la tabla informes_revisados
             db.query(queryInformesRevisados, [id_estudiante, id_asesor, informe_final, informe_final_asesoria, id_revisor], (err, result) => {
                 if (err) {
                     console.error('Error al insertar en informes revisados:', err);
                     return res.status(500).send('Error al insertar en informes revisados');
                 }
 
-                // Si todo es exitoso
                 res.status(200).send('Informes actualizados y revisor asignado correctamente');
             });
         });
     });
   });
+
 
   
 
