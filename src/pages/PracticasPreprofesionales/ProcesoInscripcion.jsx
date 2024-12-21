@@ -277,7 +277,7 @@ function ProcesoInscripcion() {
               </tbody>
             </table>
           ) : (
-            <p>No hay prácticas derivadas a la Comisión.</p>
+            <p>No hay prácticas derivadas a la Comisión....</p>
           )}
         </div>
       )}
