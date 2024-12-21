@@ -26,14 +26,12 @@ function ProcesoInscripcion() {
       // Obtener las prácticas solo una vez
       axios.get(`${apiUrl}/api/practicas`)
         .then((response) => {
-          console.log(response.data); // Verifica qué está llegando
-          const practicasData = Array.isArray(response.data) ? response.data : response.data.data || [];
-          console.log(practicasData); // Verifica el contenido
-          setPracticas(practicasData);
-          
-          if (practicasData.length > 0) {
-            const initialEstado = {};  
-            practicasData.forEach(practica => {
+          setPracticas(response.data);
+
+          // Inicializar los estados de las prácticas solo si es la primera vez que las cargamos
+          if (Object.keys(estado).length === 0) {
+            const initialEstado = {};
+            response.data.forEach(practica => {
               initialEstado[practica.id] = practica.estado_proceso;
             });
             setEstado(initialEstado);
@@ -277,7 +275,7 @@ function ProcesoInscripcion() {
               </tbody>
             </table>
           ) : (
-            <p>No hay prácticas derivadas a la Comisión....</p>
+            <p>No hay prácticas derivadas a la Comisión.</p>
           )}
         </div>
       )}
