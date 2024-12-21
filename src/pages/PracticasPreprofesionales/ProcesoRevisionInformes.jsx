@@ -54,8 +54,9 @@ function ProcesoRevisionInformes() {
 
     // Definir la URL de la API dependiendo del entorno (producción o desarrollo)
 
-    const apiUrl = process.env.NODE_ENV === 'production'
-    ? 'https://practicasuniversidad-production.up.railway.app'
+  // Determinamos la URL de la API dependiendo del entorno
+  const apiUrl = process.env.NODE_ENV === 'production' 
+    ? 'https://practicasuniversidad-production.up.railway.app' 
     : 'http://localhost:5000';
   
 
@@ -77,7 +78,7 @@ function ProcesoRevisionInformes() {
   //esto se agrego---------------------------------------p
   const handleValidar = (id) => {
     const { estado_final_informe, estado_final_asesoria } = estadoInforme[id];
-    axios.put('http://localhost:5000/api/actualizarEstado', {
+    axios.put(`${apiUrl}/api/actualizarEstado`, {
         id_informe: id,
         estado_final_informe,
         estado_final_asesoria
@@ -95,7 +96,7 @@ function ProcesoRevisionInformes() {
     const estadoFinalInforme = estadoInforme[id] || 'Pendiente';
     const estadoFinalAsesoria = estadoAsesoria[id] || 'Pendiente';
 
-    axios.put('http://localhost:5000/api/actualizarEstado', {
+    axios.put(`${apiUrl}/api/actualizarEstado`, {
       id_informe: id,
       estado_final_informe: estadoFinalInforme,
       estado_final_asesoria: estadoFinalAsesoria,
@@ -149,7 +150,7 @@ function ProcesoRevisionInformes() {
    // Obtención de notificaciones
    useEffect(() => {
     if (user && user.rol === 'estudiante') {
-      axios.get(`http://localhost:5000/api/notificaciones_informes?id_estudiante=${user.id_estudiante}`,
+      axios.get(`${apiUrl}/api/notificaciones_informes?id_estudiante=${user.id_estudiante}`,
         {timeout: 10000}
       )
         .then(response => {
@@ -171,7 +172,7 @@ function ProcesoRevisionInformes() {
     if (user && userRole === 'revisor') {
         const idRevisor = user.id_revisor; // Asegúrate de que esta propiedad exista
         if (idRevisor) {
-            axios.get(`http://localhost:5000/api/informesRevisados?id_revisor=${idRevisor}`, {
+            axios.get(`${apiUrl}/api/informesRevisados?id_revisor=${idRevisor}`, {
                 timeout: 10000
             })
             .then((response) => {
@@ -211,7 +212,7 @@ function ProcesoRevisionInformes() {
   // Obtención de notificaciones
   useEffect(() => {
     if (user && user.rol === 'asesor') {
-      axios.get(`http://localhost:5000/api/notificaciones_informes?id_asesor=${user.id_asesor}`,
+      axios.get(`${apiUrl}/api/notificaciones_informes?id_asesor=${user.id_asesor}`,
         {timeout: 10000}
       )
         .then(response => {
@@ -234,7 +235,7 @@ function ProcesoRevisionInformes() {
 
     // Verifica si el rol es 'comision'
     if (!revisores.length) {
-      axios.get('http://localhost:5000/api/revisores')
+      axios.get(`${apiUrl}/api/revisores`)
         .then(response => {
           setRevisores(response.data); // Asigna los datos de los revisores a la variable de estado
         })
@@ -245,7 +246,7 @@ function ProcesoRevisionInformes() {
   
     // Aquí es importante que no se actualice el estado si no es necesario
     if (user && (user.rol === 'secretaria' || user.rol === 'comision' || user.rol === 'docente')) {
-      axios.get('http://localhost:5000/api/informes_comision')
+      axios.get(`${apiUrl}/api/informes_comision`)
         .then(response => {
           setInformesComision(response.data);
           // Inicializar estado de los informes
@@ -264,7 +265,7 @@ function ProcesoRevisionInformes() {
   
     // Solo obtén asesores y estudiantes una vez si no se han obtenido
     if (!asesores.length) {
-      axios.get('http://localhost:5000/api/asesores')
+      axios.get(`${apiUrl}/api/asesores`)
         .then(response => {
           setAsesores(response.data);
         })
@@ -274,7 +275,7 @@ function ProcesoRevisionInformes() {
     }
   
     if (!estudiantes.length) {
-      axios.get('http://localhost:5000/api/estudiantes')
+      axios.get(`${apiUrl}/api/estudiantes`)
         .then(response => {
           setEstudiantes(response.data);
         })
@@ -295,7 +296,7 @@ function ProcesoRevisionInformes() {
     }*/
   
     if (user && user.rol === 'estudiante' && notificaciones.length === 0) {
-    axios.get(`http://localhost:5000/api/notificaciones_informes?id_estudiante=${user.id_estudiante}`, { timeout: 10000 })
+    axios.get(`${apiUrl}/api/notificaciones_informes?id_estudiante=${user.id_estudiante}`, { timeout: 10000 })
       .then(response => {
         setNotificaciones(response.data);
         // Verifica si la última notificación indica que el informe de avance está aprobado
@@ -309,7 +310,7 @@ function ProcesoRevisionInformes() {
     }
   
     if (user && user.rol === 'asesor' && notificaciones.length === 0) {
-      axios.get(`http://localhost:5000/api/notificaciones_informes?id_asesor=${user.id_asesor}`, { timeout: 10000 })
+      axios.get(`${apiUrl}/api/notificaciones_informes?id_asesor=${user.id_asesor}`, { timeout: 10000 })
         .then(response => {
           setNotificaciones(response.data);
           // Verifica si la última notificación indica que el informe de avance está aprobado
@@ -362,7 +363,7 @@ function ProcesoRevisionInformes() {
     formData.append('id_asesor', user.id_asesor); // ID del estudiante logueado
 
     try {
-      const response = await axios.post('http://localhost:5000/api/informes/finalAsesoria', formData, {
+      const response = await axios.post(`${apiUrl}/api/informes/finalAsesoria`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
@@ -398,7 +399,7 @@ function ProcesoRevisionInformes() {
     console.log("Archivo a enviar:", finalFile);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/informes/final', formData, {
+      const response = await axios.post(`${apiUrl}/api/informes/final`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
@@ -425,7 +426,7 @@ function ProcesoRevisionInformes() {
     }
 
     try {
-      const response = await axios.post('http://localhost:5000/api/informes/avance', formData, {
+      const response = await axios.post(`${apiUrl}/api/informes/avance`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       if (response.status === 200) {
@@ -450,7 +451,7 @@ function ProcesoRevisionInformes() {
     }
 
     try {
-      const response = await axios.post('http://localhost:5000/api/informes/asesoria', formData, {
+      const response = await axios.post(`${apiUrl}/api/informes/asesoria`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       if (response.status === 200) {
@@ -528,7 +529,7 @@ function ProcesoRevisionInformes() {
   
     try {
       // Enviar la solicitud PUT para actualizar el estado
-      const response = await axios.put('http://localhost:5000/api/actualizacion_informe', {
+      const response = await axios.put(`${apiUrl}/api/actualizacion_informe`, {
         id_estudiante: idEstudiante,
         estado_informe_asesoria: estadoAsesoria,
         estado_informe_avance: estadoAvance,
@@ -550,7 +551,7 @@ function ProcesoRevisionInformes() {
         id_asesor: idAsesor
       };
   
-      await axios.post('http://localhost:5000/api/notificar', notificationData);
+      await axios.post(`${apiUrl}/api/notificar`, notificationData);
   
       // Actualizar el estado de los informes en la interfaz
       setEstado(prevEstado => {
@@ -582,11 +583,11 @@ function ProcesoRevisionInformes() {
 
     try {
         // 1. Solicitar informe final del estudiante desde la API
-        const informeFinalResponse = await axios.get(`http://localhost:5000/api/informeFinal/${idEstudiante}`);
+        const informeFinalResponse = await axios.get(`${apiUrl}/api/informeFinal/${idEstudiante}`);
         const infi = informeFinalResponse.data.informe_final;
 
         // 2. Solicitar informe final de asesoría desde la API
-        const informeFinalAsesoriaResponse = await axios.get(`http://localhost:5000/api/informeFinalAsesoria/${idAsesor}`);
+        const informeFinalAsesoriaResponse = await axios.get(`${apiUrl}/api/informeFinalAsesoria/${idAsesor}`);
         const infias = informeFinalAsesoriaResponse.data.informe_final_asesoria;
 
         // Verificar si ambos informes existen
@@ -605,7 +606,7 @@ function ProcesoRevisionInformes() {
         
 
         // Enviar la solicitud PUT con los datos obtenidos
-        const response = await axios.put('http://localhost:5000/api/asignar_actualizar', {
+        const response = await axios.put(`${apiUrl}/api/asignar_actualizar`, {
             id_estudiante: idEstudiante,         // ID del estudiante
             id_asesor: idAsesor,                 // ID del asesor
             informe_final:  infi, // Informe final (archivo o el obtenido)
@@ -780,14 +781,14 @@ function ProcesoRevisionInformes() {
                   </td>
                   <td style={{ padding: '8px', border: '1px solid #ddd' }}>
                     {informe.informe_asesoria && (
-                      <a href={`http://localhost:5000/api/descargar/${informe.informe_asesoria}`} target="_blank" rel="noopener noreferrer">
+                      <a href={`${apiUrl}/api/descargar/${informe.informe_asesoria}`} target="_blank" rel="noopener noreferrer">
                         Ver Informe Asesoría
                       </a>
                     )}
                   </td>
                   <td style={{ padding: '8px', border: '1px solid #ddd' }}>
                     {informe.informe_avance && (
-                      <a href={`http://localhost:5000/api/descargar/${informe.informe_avance}`} target="_blank" rel="noopener noreferrer">
+                      <a href={`${apiUrl}/api/descargar/${informe.informe_avance}`} target="_blank" rel="noopener noreferrer">
                         Ver Informe Avance
                       </a>
                     )}
@@ -866,12 +867,12 @@ function ProcesoRevisionInformes() {
 
                     {/* Enlaces a los archivos de Informe Final y Informe de Asesoría */}
                     <td>
-                      <a href={`http://localhost:5000/uploads/${informe.informe_final}`} target="_blank" rel="noopener noreferrer">
+                      <a href={`${apiUrl}/uploads/${informe.informe_final}`} target="_blank" rel="noopener noreferrer">
                         Ver archivo
                       </a>
                     </td>
                     <td>
-                      <a href={`http://localhost:5000/uploads/${informe.informe_final_asesoria}`} target="_blank" rel="noopener noreferrer">
+                      <a href={`${apiUrl}/uploads/${informe.informe_final_asesoria}`} target="_blank" rel="noopener noreferrer">
                         Ver archivo
                       </a>
                     </td>
