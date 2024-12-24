@@ -71,8 +71,8 @@
     
   });*/
 
-  // Configuración de la base de datos con pool
 
+  // Configuración del pool de conexiones
   const db = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -83,6 +83,40 @@
     waitForConnections: true,  // Espera cuando no haya conexiones disponibles
     queueLimit: 0  // No limitar el número de consultas que esperan en la cola
   });
+
+  // Usar el pool para obtener una conexión
+  db.getConnection((err, connection) => {
+    if (err) {
+      console.error('Error al conectar a la base de datos:', err.stack);
+      return;
+    }
+    console.log('Conexión a la base de datos exitosa');
+
+    // Realiza operaciones con la base de datos usando `connection`
+    cifrarContraseñas();  // Llamar a la función para cifrar contraseñas si es necesario
+
+    connection.release(); // Libera la conexión cuando termines
+  });
+
+  // Escucha de errores en la base de datos (por ejemplo, desconexión)
+  db.on('error', (err) => {
+    console.error('Error con la base de datos:', err);
+    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+      // Aquí intentamos reconectar si la conexión se pierde
+      console.log('Reintentando la conexión...');
+      db.getConnection((err, connection) => {
+        if (err) {
+          console.error('Error al reconectar:', err);
+        } else {
+          console.log('Reconexión exitosa');
+          connection.release();  // Liberamos la conexión
+        }
+      });
+    }
+  });
+
+
+  
 
   db.connect((err) => {
     if (err) {
@@ -1352,26 +1386,6 @@ app.put('/api/actualizacion_informe', (req, res) => {
   // Para cualquier otra ruta, servir el index.html
   app.get('*', (req, res) => {
       res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-  });
-
-
-  //con pool 
-
-  // Escucha de errores en la base de datos (por ejemplo, desconexión)
-  db.on('error', (err) => {
-    console.error('Error con la base de datos:', err);
-    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-      // Aquí intentamos reconectar si la conexión se pierde
-      console.log('Reintentando la conexión...');
-      db.getConnection((err, connection) => {
-        if (err) {
-          console.error('Error al reconectar:', err);
-        } else {
-          console.log('Reconexión exitosa');
-          connection.release();  // Liberamos la conexión
-        }
-      });
-    }
   });
 
 
