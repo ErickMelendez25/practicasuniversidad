@@ -839,8 +839,8 @@ function ProcesoRevisionInformes() {
 
 
 
-      {userRole === 'revisor' && (
-        <div>
+    {userRole === 'revisor' && (
+      <div>
         <h3>Informes Revisados</h3>
         {informes.length === 0 ? (
           <p>No hay informes para revisar.</p>
@@ -855,6 +855,9 @@ function ProcesoRevisionInformes() {
                 <th>Estado Informe Final</th>
                 <th>Estado Asesoría</th>
                 <th>Acciones</th>
+                {/* Nueva columna para los botones de archivo y enviar (solo para 'Aprobado') */}
+                <th>Subir Archivo</th>
+                <th>Enviar</th>
               </tr>
             </thead>
             <tbody>
@@ -914,6 +917,21 @@ function ProcesoRevisionInformes() {
                         A comision
                       </button>
                     </td>
+
+                    {/* Nuevas columnas para subir archivo y enviar solo si los estados son Aprobados */}
+                    {(estadoInforme[informe.id]?.estado_final_informe === 'Aprobado' && 
+                    estadoInforme[informe.id]?.estado_final_asesoria === 'Aprobado') && (
+                      <>
+                        <td>
+                          <input type="file" onChange={(e) => handleFileUpload(informe.id, e)} />
+                        </td>
+                        <td>
+                          <button onClick={() => handleEnviarArchivo(informe.id)}>
+                            Enviar
+                          </button>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
             </tbody>

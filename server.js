@@ -62,13 +62,26 @@
   app.use('/uploads', express.static(uploadDirectory));
 
   // Configuración de la base de datos
-  const db = mysql.createConnection({
+  /*const db = mysql.createConnection({
     host: process.env.DB_HOST,         // Usamos las variables de entorno
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT,         // Puerto de la base de datos
     database: process.env.DB_NAME      // Nombre de la base de datos
     
+  });*/
+
+  // Configuración de la base de datos con pool
+
+  const db = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT,
+    database: process.env.DB_NAME,
+    connectionLimit: 10,  // Número de conexiones simultáneas que el pool puede manejar
+    waitForConnections: true,  // Espera cuando no haya conexiones disponibles
+    queueLimit: 0  // No limitar el número de consultas que esperan en la cola
   });
 
   db.connect((err) => {
@@ -1339,6 +1352,26 @@ app.put('/api/actualizacion_informe', (req, res) => {
   // Para cualquier otra ruta, servir el index.html
   app.get('*', (req, res) => {
       res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  });
+
+
+  //con pool 
+
+  // Escucha de errores en la base de datos (por ejemplo, desconexión)
+  db.on('error', (err) => {
+    console.error('Error con la base de datos:', err);
+    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+      // Aquí intentamos reconectar si la conexión se pierde
+      console.log('Reintentando la conexión...');
+      db.getConnection((err, connection) => {
+        if (err) {
+          console.error('Error al reconectar:', err);
+        } else {
+          console.log('Reconexión exitosa');
+          connection.release();  // Liberamos la conexión
+        }
+      });
+    }
   });
 
 
