@@ -69,31 +69,9 @@
     port: process.env.DB_PORT,         // Puerto de la base de datos
     database: process.env.DB_NAME      // Nombre de la base de datos
     
-  });
+  });*/
 
-
-
-
-
-  
-
-  db.connect((err) => {
-    if (err) {
-      console.error('Error al conectar a la base de datos:', err.stack);
-      return;
-    }
-    console.log('Conexión a la base de datos exitosa');
-    cifrarContraseñas();  // Llamar a la función para cifrar contraseñas si es necesario
-  });
-
-  // Función para generar el token
-  const generateToken = (user) => {
-    const payload = { correo: user.correo, rol: user.rol };
-    return jwt.sign(payload, 'secreta', { expiresIn: '1h' });
-    
-  };*/
-
-  ////CONEXION
+  //METODO 2
 
   // Configuración del pool de conexiones
   const db = mysql.createPool({
@@ -107,39 +85,54 @@
     queueLimit: 0  // No limitar el número de consultas que esperan en la cola
   });
 
-  // Usar el pool para realizar una consulta
-  db.getConnection((err, connection) => {
+
+
+
+
+  
+
+  /*db.connect((err) => {
     if (err) {
       console.error('Error al conectar a la base de datos:', err.stack);
       return;
     }
-
     console.log('Conexión a la base de datos exitosa');
+    cifrarContraseñas();  // Llamar a la función para cifrar contraseñas si es necesario
+  });*/
 
-    // Realiza operaciones con la base de datos usando `connection`
-    // Por ejemplo, realizar una consulta para cifrar contraseñas, o lo que necesites.
+
+  //METODO 2
+
+  db.getConnection((err, connection) => {
+    if (err) {
+        console.error('Error al conectar a la base de datos:', err.stack);
+        return;
+    }
+    console.log('Conexión a la base de datos exitosa');
     cifrarContraseñas();  // Llamar a la función para cifrar contraseñas si es necesario
 
-    // Una vez terminada la operación, libera la conexión
-    connection.release(); // Libera la conexión cuando termines
+    // Libera la conexión cuando termines
+    connection.release();
   });
 
-  // Escucha de errores en la base de datos (por ejemplo, desconexión)
-  db.on('error', (err) => {
-    console.error('Error con la base de datos:', err);
-    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-      // Aquí intentamos reconectar si la conexión se pierde
-      console.log('Reintentando la conexión...');
-      db.getConnection((err, connection) => {
-        if (err) {
-          console.error('Error al reconectar:', err);
-        } else {
-          console.log('Reconexión exitosa');
-          connection.release();  // Liberamos la conexión
-        }
-      });
-    }
-  });
+  // Función para generar el token
+  /*const generateToken = (user) => {
+    const payload = { correo: user.correo, rol: user.rol };
+    return jwt.sign(payload, 'secreta', { expiresIn: '1h' });
+    
+  };*/
+
+  //METODO 2
+
+  // Función para generar el token
+  const generateToken = (user) => {
+    const payload = { correo: user.correo, rol: user.rol };
+    return jwt.sign(payload, 'secreta', { expiresIn: '1h' });
+  };
+
+  ////CONEXION
+
+  
 
 
 
